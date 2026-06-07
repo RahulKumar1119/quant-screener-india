@@ -198,14 +198,14 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 2: Theme persistence round-trip**
     - **Validates: Requirements 2.4**
 
-- [ ] 13. Frontend: Navigation header with ticker search
-  - [ ] 13.1 Implement `src/components/NavigationHeader.tsx`
+- [x] 13. Frontend: Navigation header with ticker search
+  - [x] 13.1 Implement `src/components/NavigationHeader.tsx`
     - Render sticky header with Logo, TickerSearchBar, and ThemeToggle
     - Use Tailwind `sticky top-0 z-50` positioning
     - Responsive: search bar collapses to icon on mobile
     - _Requirements: 1.1, 1.6, 2.2_
 
-  - [ ] 13.2 Implement `src/components/TickerSearchBar.tsx`
+  - [x] 13.2 Implement `src/components/TickerSearchBar.tsx`
     - Render search input with typeahead suggestions filtered from Nifty 500 list
     - Filter suggestions as case-insensitive substring match on ticker symbol
     - On selection: navigate to `/:ticker` route using React Router
@@ -215,7 +215,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 1: Search suggestion filtering**
     - **Validates: Requirements 1.3**
 
-  - [ ] 13.4 Implement `src/components/ThemeToggle.tsx`
+  - [x] 13.4 Implement `src/components/ThemeToggle.tsx`
     - Render toggle button consuming useTheme hook
     - Display sun/moon icon based on current theme
     - _Requirements: 2.2, 2.3_
