@@ -2,13 +2,13 @@
 
 ## Overview
 
-Full-stack implementation of an AI-powered Financial Stock Screening platform consuming real-time NSE India data. The backend is a FastAPI data aggregation proxy using `jugaad-data` for live NSE feeds, `cachetools` for TTL caching, and pre-trained ML model wrappers (XGBoost, LSTM, TFT, Gemma). The frontend is a React 18 SPA built with Rsbuild, Tailwind CSS, ApexCharts, and TanStack Table with Indian localization and dark/light theme support.
+Full-stack implementation of an AI-powered Financial Stock Screening platform consuming real-time NSE India data. The backend is a FastAPI data aggregation proxy using `jugaad-data` for live NSE feeds, `cachetools` for TTL caching, and pre-trained ML model wrappers (XGBoost, LSTM, TFT, Gemma). The frontend is a React 19 SPA built with Rsbuild, Tailwind CSS, Recharts, TradingView Lightweight Charts, and TanStack Table with Indian localization and dark/light theme support.
 
 ## Tasks
 
 - [ ] 1. Project scaffolding and configuration
-  - [ ] 1.1 Initialize frontend project with Rsbuild, React 18, TypeScript, and Tailwind CSS
-    - Create `package.json` with dependencies: react, react-dom, react-router-dom, apexcharts, react-apexcharts, @tanstack/react-table, tailwindcss
+  - [ ] 1.1 Initialize frontend project with Rsbuild, React 19, TypeScript, and Tailwind CSS
+    - Create `package.json` with dependencies: react, react-dom, react-router-dom, recharts, lightweight-charts, @tanstack/react-table, tailwindcss
     - Create `rsbuild.config.ts` with dev server on port 3000 and API proxy to localhost:8000
     - Create `tailwind.config.ts` with `darkMode: "class"` and default Tailwind breakpoints
     - Create `src/index.css` with Tailwind directives (`@tailwind base; components; utilities`)
@@ -16,7 +16,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - _Requirements: 10.1, 10.3, 10.4, 10.5, 10.6_
 
   - [ ] 1.2 Initialize backend project with FastAPI, jugaad-data, and ML dependencies
-    - Create `backend/requirements.txt` with: fastapi, uvicorn, jugaad-data, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic
+    - Create `backend/requirements.txt` with: fastapi, uvicorn, jugaad-data, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic, boto3
     - Create `backend/` directory structure: `app.py`, `nse_client.py`, `cache.py`, `rate_limiter.py`, `schemas.py`, `ml_models/__init__.py`
     - Create `backend/model_artifacts/` directory with placeholder `.gitkeep` files for model weights
     - _Requirements: 9.10, 9.18_
@@ -90,9 +90,10 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - _Requirements: 9.14_
 
   - [ ] 6.4 Implement `backend/ml_models/gemma_model.py`
-    - Create `GemmaModel` class connecting to Ollama endpoint (localhost:11434)
+    - Create `GemmaModel` class connecting to AWS Bedrock (Gemma 3 4B IT)
+    - Use `boto3` client for `bedrock-runtime` to invoke Gemma 3 4B IT model
     - Implement `generate_summary(ticker, financials, quote, rating)` with SEBI-style prompt
-    - Handle httpx timeout (30s) and connection errors gracefully (return empty string)
+    - Handle boto3 exceptions and timeouts gracefully (return empty string)
     - _Requirements: 9.15_
 
   - [ ] 6.5 Create `backend/ml_models/__init__.py` exporting all model classes
@@ -237,13 +238,13 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Responsive grid: `grid-cols-2 md:grid-cols-3 lg:grid-cols-5`
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-  - [ ] 15.3 Implement `src/components/PriceChart.tsx` with ApexCharts
+  - [ ] 15.3 Implement `src/components/PriceChart.tsx` with TradingView Lightweight Charts
     - Render line chart with 30-day historical closing prices (solid gray line)
-    - Render LSTM projection as dotted Royal Blue line extending 7 trading days
-    - Use category x-axis (not datetime) with weekday-only date strings
-    - Add annotation at transition point between historical and projection
+    - Render LSTM projection as dashed Royal Blue line extending 7 trading days
+    - Use YYYY-MM-DD date strings (weekday-only, TradingView skips gaps natively)
+    - Separate series for historical and projection with clear transition point
     - Handle null `lstm_projection` gracefully (show historical only)
-    - Responsive chart height: 350px desktop, 250px mobile
+    - Responsive via ResizeObserver: 350px desktop, 250px mobile
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
   - [ ] 15.4 Implement `src/components/TFTScoreGauge.tsx`
@@ -372,7 +373,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - Property tests validate universal correctness properties from the design document (13 properties total)
 - The backend uses NO mock data — all data comes from live NSE India APIs via jugaad-data
 - ML model artifacts must be pre-trained and placed in `backend/model_artifacts/` before running
-- Gemma 3 27B requires Ollama running locally or an external API endpoint
+- Gemma 3 4B IT runs via AWS Bedrock (requires AWS credentials with Bedrock access)
 - Frontend handles nullable ML fields gracefully — partial responses show available data with "unavailable" placeholders
 
 ## Task Dependency Graph

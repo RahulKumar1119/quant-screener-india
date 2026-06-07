@@ -15,7 +15,7 @@ Browser (React SPA)  →  FastAPI Backend (Data Proxy)  →  NSE India APIs
                     (XGBoost · LSTM · TFT · Gemma 3 27B)
 ```
 
-- **Frontend**: React 18 + Rsbuild (Rspack) + Tailwind CSS → static SPA (`dist/`) for AWS Amplify
+- **Frontend**: React 19 + Rsbuild (Rspack) + Tailwind CSS → static SPA (`dist/`) for AWS Amplify
 - **Backend**: FastAPI data aggregation proxy with TTL caching, rate limiting, and ML inference
 - **Data Source**: NSE India public APIs via `jugaad-data` Python library
 - **ML Models**: Pre-trained artifacts loaded at startup, inference on live data
@@ -23,10 +23,11 @@ Browser (React SPA)  →  FastAPI Backend (Data Proxy)  →  NSE India APIs
 ## Tech Stack
 
 ### Frontend
-- React 18 with TypeScript
+- React 19 with TypeScript
 - Rsbuild (Rspack-powered) — builds to static `dist/`
 - Tailwind CSS with dark/light theme (`class` strategy)
-- ApexCharts for price visualization
+- Recharts for gauges and supplementary charts
+- TradingView Lightweight Charts for price visualization
 - TanStack Table (React Table) for financial data grids
 - React Router for client-side routing
 
@@ -35,7 +36,7 @@ Browser (React SPA)  →  FastAPI Backend (Data Proxy)  →  NSE India APIs
 - `jugaad-data` for NSE live quotes, historical OHLC, RBI data
 - `cachetools` for 5-tier TTL caching
 - `xgboost`, `tensorflow` (LSTM), `pytorch` (TFT) for ML inference
-- Gemma 3 27B via Ollama for narrative generation
+- Gemma 3 4B IT via AWS Bedrock for narrative generation
 - `httpx` for custom NSE API calls
 - `pandas` + `numpy` for data manipulation
 
@@ -46,7 +47,7 @@ Browser (React SPA)  →  FastAPI Backend (Data Proxy)  →  NSE India APIs
 - **AI Technical Horizon Chart** — 30-day historical prices + 7-day LSTM projection (Royal Blue dotted line), weekends excluded
 - **ML Scoring Panel** — TFT Macro Resilience Score gauge (0–100) + XGBoost rating badge (STRONG BUY/BUY/HOLD/SELL)
 - **Quarterly Financial Table** — Screener.in-style sortable table with Indian Crores formatting
-- **AI Narrative Summary** — Gemma 3 27B SEBI-style fundamental analysis
+- **AI Narrative Summary** — Gemma 3 4B IT (AWS Bedrock) SEBI-style fundamental analysis
 
 ### Custom Screener
 - Text-based fundamental query language (e.g., `PE < 25 AND ROE > 15 AND AI_Rating = "STRONG BUY"`)
@@ -65,7 +66,7 @@ Browser (React SPA)  →  FastAPI Backend (Data Proxy)  →  NSE India APIs
 | XGBoost | Quarterly financials (revenue, margins, growth) | Rating (STRONG BUY/BUY/HOLD/SELL) + confidence |
 | LSTM | 30-day historical OHLC | 7-day price projection |
 | TFT (Temporal Fusion Transformer) | RBI REPO rate + Nifty sector indices | Macro Resilience Score (0–100) + trend outlook |
-| Gemma 3 27B | Financial data + quote + rating | SEBI-style narrative summary |
+| Gemma 3 4B IT (AWS Bedrock) | Financial data + quote + rating | SEBI-style narrative summary |
 
 ## Project Structure
 
@@ -103,7 +104,7 @@ Browser (React SPA)  →  FastAPI Backend (Data Proxy)  →  NSE India APIs
 
 - Node.js 18+
 - Python 3.10+
-- Ollama (for Gemma 3 27B inference) — optional
+- AWS account with Bedrock access (for Gemma 3 4B IT inference) — required
 
 ### Backend Setup
 

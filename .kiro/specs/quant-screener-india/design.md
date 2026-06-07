@@ -2,7 +2,7 @@
 
 ## Overview
 
-An AI-powered Financial Stock Screening and Analytics Platform focused on the Indian Stock Market (NSE). The platform provides intelligent stock analysis through four ML models (XGBoost, LSTM, TFT, Gemma 3 27B), interactive ApexCharts visualizations, TanStack Table financial data grids, and a custom text-based query screener. Built as a static SPA (React 18 + Rsbuild + Tailwind CSS) consuming a FastAPI backend that fetches real-time data from NSE India via the `jugaad-data` Python library, targeting deployment on AWS Amplify with full dark/light theme support and Indian localization (₹, Crores, Lakhs, weekend-skipping date axes).
+An AI-powered Financial Stock Screening and Analytics Platform focused on the Indian Stock Market (NSE). The platform provides intelligent stock analysis through four ML models (XGBoost, LSTM, TFT, Gemma 3 4B IT via AWS Bedrock), interactive Recharts and TradingView Lightweight Charts visualizations, TanStack Table financial data grids, and a custom text-based query screener. Built as a static SPA (React 19 + Rsbuild + Tailwind CSS) consuming a FastAPI backend that fetches real-time data from NSE India via the `jugaad-data` Python library, targeting deployment on AWS Amplify with full dark/light theme support and Indian localization (₹, Crores, Lakhs, weekend-skipping date axes).
 
 ## Architecture
 
@@ -13,8 +13,8 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │  Browser (React SPA)                                                     │
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │  Rsbuild → static dist/                                           │  │
-│  │  React 18 + TypeScript + Tailwind CSS                             │  │
-│  │  ApexCharts · TanStack Table · React Router                       │  │
+│  │  React 19 + TypeScript + Tailwind CSS                             │  │
+│  │  Recharts · TradingView Charts · TanStack Table · React Router    │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │         ▲                                                                │
 │         │  HTTP (JSON)                                                   │
@@ -44,7 +44,7 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
    AWS Amplify (static hosting of dist/)
 ```
 
-- **Frontend**: React 18 SPA built with Rsbuild (Rspack), styled with Tailwind CSS, served as static files.
+- **Frontend**: React 19 SPA built with Rsbuild (Rspack), styled with Tailwind CSS, served as static files.
 - **Backend**: FastAPI data aggregation proxy that fetches live data from NSE India, applies caching, rate limiting, and runs ML inference on real data. No database required.
 - **Data Source**: NSE India public APIs accessed via `jugaad-data` library with session cookie management.
 - **Communication**: RESTful JSON over HTTP. Frontend fetches from `localhost:8000` during development.
@@ -77,7 +77,7 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │       │   └── <AnalyticsPage>
 │       │       ├── <ProfileCardGrid />
 │       │       ├── <IntelEngineDashboard>
-│       │       │   ├── <PriceChart />          (ApexCharts)
+│       │       │   ├── <PriceChart />          (TradingView Lightweight Charts)
 │       │       │   └── <MLScoringPanel>
 │       │       │       ├── <TFTScoreGauge />
 │       │       │       └── <XGBoostRatingBadge />
@@ -136,7 +136,7 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │   │   ├── xgboost_model.py          (XGBoost inference wrapper)
 │   │   ├── lstm_model.py             (LSTM inference wrapper)
 │   │   ├── tft_model.py              (TFT inference wrapper)
-│   │   └── gemma_model.py            (Gemma 3 27B inference wrapper)
+│   │   └── gemma_model.py            (Gemma 3 4B IT via AWS Bedrock)
 │   ├── model_artifacts/
 │   │   ├── xgboost_rating.json       (Pre-trained XGBoost model)
 │   │   ├── lstm_price.h5             (Pre-trained LSTM weights)
@@ -335,7 +335,7 @@ async def lifespan(app: FastAPI):
     app.state.xgboost = XGBoostModel("model_artifacts/xgboost_rating.json")
     app.state.lstm = LSTMModel("model_artifacts/lstm_price.h5")
     app.state.tft = TFTModel("model_artifacts/tft_macro.pt")
-    app.state.gemma = GemmaModel()  # Connects to Ollama or API
+    app.state.gemma = GemmaModel()  # Connects to AWS Bedrock
     app.state.nse_client = NSEClient()
     app.state.cache = CacheManager()
     yield
@@ -461,19 +461,20 @@ class TFTModel:
         return "Neutral"
 ```
 
-### Gemma 3 27B — Narrative Summary
+### Gemma 3 4B IT — Narrative Summary (AWS Bedrock)
 
 ```python
 # backend/ml_models/gemma_model.py
 
-import httpx
+import boto3
+import json
 
 class GemmaModel:
-    """Generates SEBI-style narrative summary via Ollama or external API."""
+    """Generates SEBI-style narrative summary via AWS Bedrock (Gemma 3 4B IT)."""
 
-    def __init__(self, endpoint: str = "http://localhost:11434/api/generate"):
-        self.endpoint = endpoint
-        self.model_name = "gemma3:27b"
+    def __init__(self, region: str = "us-east-1"):
+        self.client = boto3.client("bedrock-runtime", region_name=region)
+        self.model_id = "google/gemma-3-4b-it"
 
     def generate_summary(self, ticker: str, financials: list[dict],
                          quote: dict, rating: dict) -> str:
@@ -483,14 +484,18 @@ class GemmaModel:
         """
         prompt = self._build_prompt(ticker, financials, quote, rating)
         try:
-            resp = httpx.post(
-                self.endpoint,
-                json={"model": self.model_name, "prompt": prompt, "stream": False},
-                timeout=30.0,
+            response = self.client.invoke_model(
+                modelId=self.model_id,
+                contentType="application/json",
+                accept="application/json",
+                body=json.dumps({
+                    "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                    "generationConfig": {"maxOutputTokens": 300, "temperature": 0.3},
+                }),
             )
-            resp.raise_for_status()
-            return resp.json().get("response", "")
-        except (httpx.HTTPError, httpx.TimeoutException):
+            result = json.loads(response["body"].read())
+            return result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        except Exception:
             return ""  # Graceful fallback — summary field will be empty
 
     def _build_prompt(self, ticker, financials, quote, rating) -> str:
@@ -1050,54 +1055,71 @@ export function isWeekday(dateStr: string): boolean {
 }
 ```
 
-### ApexCharts Configuration
+### TradingView Lightweight Charts Configuration
 
 ```typescript
-// PriceChart.tsx — chart options
+// PriceChart.tsx — TradingView Lightweight Charts setup
 
-const chartOptions: ApexCharts.ApexOptions = {
-  chart: {
-    type: "line",
-    toolbar: { show: true },
-    zoom: { enabled: true },
+import { createChart, LineSeries } from "lightweight-charts";
+
+// Chart initialization
+const chart = createChart(containerRef.current, {
+  width: containerWidth,
+  height: 350,
+  layout: {
+    background: { color: isDark ? "#111827" : "#ffffff" },
+    textColor: isDark ? "#f3f4f6" : "#374151",
   },
-  xaxis: {
-    type: "category",           // Use category (not datetime) to skip weekends
-    categories: [...historicalDates, ...projectionDates],
-    labels: {
-      rotate: -45,
-      formatter: (val: string) => formatShortDate(val),
-    },
+  grid: {
+    vertLines: { color: isDark ? "#374151" : "#e5e7eb" },
+    horzLines: { color: isDark ? "#374151" : "#e5e7eb" },
   },
-  stroke: {
-    width: [2, 2],
-    dashArray: [0, 5],          // Solid for historical, dotted for projection
+  timeScale: {
+    timeVisible: false,
+    borderColor: isDark ? "#4b5563" : "#d1d5db",
   },
-  colors: ["#374151", "#4169E1"],  // Gray-700 for historical, Royal Blue for projection
-  annotations: {
-    xaxis: [{
-      x: lastHistoricalDate,
-      borderColor: "#9CA3AF",
-      label: { text: "Projection →" },
-    }],
-  },
-  series: [
-    { name: "Historical", data: historicalPrices },
-    { name: "LSTM Projection", data: [...nullPadding, ...projectionPrices] },
-  ],
-  responsive: [{
-    breakpoint: 768,
-    options: { chart: { height: 250 } },
-  }],
-};
+});
+
+// Historical price series (solid gray line)
+const historicalSeries = chart.addSeries(LineSeries, {
+  color: "#374151",
+  lineWidth: 2,
+  lineStyle: 0, // Solid
+});
+historicalSeries.setData(
+  historicalDates.map((date, i) => ({
+    time: date, // YYYY-MM-DD format (weekdays only)
+    value: historicalPrices[i],
+  }))
+);
+
+// LSTM Projection series (dotted Royal Blue line)
+const projectionSeries = chart.addSeries(LineSeries, {
+  color: "#4169E1",
+  lineWidth: 2,
+  lineStyle: 2, // Dashed
+});
+projectionSeries.setData(
+  projectionDates.map((date, i) => ({
+    time: date,
+    value: projectionPrices[i],
+  }))
+);
+
+// Responsive resize
+const resizeObserver = new ResizeObserver((entries) => {
+  const { width } = entries[0].contentRect;
+  chart.applyOptions({ width });
+});
+resizeObserver.observe(containerRef.current);
 ```
 
 ### Key Design Decisions
 
-- **Category axis** (not datetime): This naturally skips weekends since we only provide weekday date strings as categories. No need for custom axis tick filtering.
-- **Two series**: Historical as solid line, LSTM projection as dotted line with Royal Blue color.
-- **Null padding**: The projection series uses `null` values for historical date positions, making the line start only at the transition point.
-- **Annotation**: A vertical line marks the transition from historical to projected.
+- **Category axis** (not datetime): This naturally skips weekends since we only provide weekday date strings. TradingView Lightweight Charts handles `YYYY-MM-DD` strings natively and skips gaps.
+- **Two series**: Historical as solid line, LSTM projection as dashed line with Royal Blue color.
+- **Separate series**: The projection series starts from the last historical date, making the transition clear.
+- **Responsive**: ResizeObserver adjusts chart width automatically.
 
 ---
 
@@ -1230,7 +1252,8 @@ The backend follows a **data-first, ML-optional** approach:
 ### Unit Tests (Example-Based)
 - Navigation renders default ticker JNKINDIA on first load
 - Theme toggle switches between dark/light classes
-- ApexCharts receives correct series configuration
+- Recharts receives correct series configuration for TFT gauge
+- TradingView chart renders historical + projection series
 - TFT gauge renders with score 0–100
 - Gemma summary card displays AI-generated label
 - Custom screener route is accessible at /screener
