@@ -69,34 +69,34 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Define `ErrorResponse` model (detail: str, retry_after: Optional[int])
     - _Requirements: 9.1, 9.5_
 
-- [ ] 6. Backend: ML model wrappers
-  - [ ] 6.1 Implement `backend/ml_models/xgboost_model.py`
+- [x] 6. Backend: ML model wrappers
+  - [x] 6.1 Implement `backend/ml_models/xgboost_model.py`
     - Create `XGBoostModel` class loading pre-trained model from JSON artifact
     - Implement `predict(financials)` extracting features from quarterly data and returning rating + confidence
     - Define rating_map: {0: "SELL", 1: "HOLD", 2: "BUY", 3: "STRONG BUY"}
     - Implement `_extract_features()` computing revenue growth, margins, profit trends
     - _Requirements: 9.12_
 
-  - [ ] 6.2 Implement `backend/ml_models/lstm_model.py`
+  - [x] 6.2 Implement `backend/ml_models/lstm_model.py`
     - Create `LSTMModel` class loading Keras .h5 model
     - Implement `predict(historical_df)` normalizing 30-day OHLC and auto-regressively predicting 7 days
     - Implement `_generate_trading_dates(count)` producing weekday-only future dates
     - _Requirements: 9.13_
 
-  - [ ] 6.3 Implement `backend/ml_models/tft_model.py`
+  - [x] 6.3 Implement `backend/ml_models/tft_model.py`
     - Create `TFTModel` class loading PyTorch .pt model
     - Implement `predict(repo_rate, sector_indices)` producing score (0-100) and trend outlook
     - Implement `_score_to_trend(score)` mapping: ≥65 Bullish, ≤35 Bearish, else Neutral
     - _Requirements: 9.14_
 
-  - [ ] 6.4 Implement `backend/ml_models/gemma_model.py`
+  - [x] 6.4 Implement `backend/ml_models/gemma_model.py`
     - Create `GemmaModel` class connecting to AWS Bedrock (Gemma 3 4B IT)
     - Use `boto3` client for `bedrock-runtime` to invoke Gemma 3 4B IT model
     - Implement `generate_summary(ticker, financials, quote, rating)` with SEBI-style prompt
     - Handle boto3 exceptions and timeouts gracefully (return empty string)
     - _Requirements: 9.15_
 
-  - [ ] 6.5 Create `backend/ml_models/__init__.py` exporting all model classes
+  - [x] 6.5 Create `backend/ml_models/__init__.py` exporting all model classes
     - Export XGBoostModel, LSTMModel, TFTModel, GemmaModel
     - _Requirements: 9.11_
 
@@ -104,8 +104,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 12: XGBoost output domain validity**
     - **Validates: Requirements 9.12**
 
-- [ ] 7. Backend: FastAPI application with endpoints, lifespan, and error handling
-  - [ ] 7.1 Implement `backend/app.py` with lifespan, endpoints, and CORS
+- [x] 7. Backend: FastAPI application with endpoints, lifespan, and error handling
+  - [x] 7.1 Implement `backend/app.py` with lifespan, endpoints, and CORS
     - Create FastAPI app with `lifespan` context manager loading all ML models, NSEClient, CacheManager, RateLimiter at startup
     - Implement `GET /api/screener/{ticker}` endpoint: rate-limit → fetch quote → fetch historical → fetch financials → run ML inference → return TickerResponse
     - Implement `GET /api/screener/all` endpoint: fetch Nifty 500 constituents with summary data
@@ -187,8 +187,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Handle network timeouts with descriptive error messages
     - _Requirements: 9.1, 9.16_
 
-- [ ] 12. Frontend: Theme system
-  - [ ] 12.1 Implement `src/hooks/useTheme.ts` and ThemeProvider context
+- [x] 12. Frontend: Theme system
+  - [x] 12.1 Implement `src/hooks/useTheme.ts` and ThemeProvider context
     - Create ThemeContext with `theme` state and `toggleTheme` function
     - On mount: read localStorage("theme") → if present use it, else read `prefers-color-scheme` media query
     - On toggle: flip theme, update `<html>` class (add/remove "dark"), persist to localStorage

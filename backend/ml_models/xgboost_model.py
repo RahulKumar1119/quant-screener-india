@@ -1,8 +1,11 @@
 """XGBoost model wrapper for stock rating prediction from quarterly financials."""
 
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import xgboost as xgb
@@ -46,7 +49,7 @@ class XGBoostModel:
                 model_path,
             )
 
-    def predict(self, financials: list[dict]) -> dict:
+    def predict(self, financials: list[dict]) -> Optional[dict]:
         """Predict stock rating from quarterly financial data.
 
         Args:
@@ -61,29 +64,32 @@ class XGBoostModel:
             dict with:
                 - rating: One of "STRONG BUY", "BUY", "HOLD", "SELL"
                 - confidence: Float between 0.0 and 1.0
-
-        Raises:
-            RuntimeError: If the model is not loaded.
-            ValueError: If financials list is empty or missing required fields.
+            Or None if the model is not loaded or financials are empty.
         """
         if self.model is None:
-            raise RuntimeError(
-                f"XGBoost model is not loaded. Ensure model file exists at: {self.model_path}"
+            logger.warning(
+                "XGBoost model not loaded. Cannot produce predictions."
             )
+            return None
 
         if not financials:
-            raise ValueError("financials list must not be empty")
+            logger.warning("financials list must not be empty")
+            return None
 
-        features = self._extract_features(financials)
-        dmatrix = xgb.DMatrix(np.array([features]))
-        probabilities = self.model.predict(dmatrix)[0]
-        predicted_class = int(np.argmax(probabilities))
-        confidence = float(probabilities[predicted_class])
+        try:
+            features = self._extract_features(financials)
+            dmatrix = xgb.DMatrix(np.array([features]))
+            probabilities = self.model.predict(dmatrix)[0]
+            predicted_class = int(np.argmax(probabilities))
+            confidence = float(probabilities[predicted_class])
 
-        return {
-            "rating": self.rating_map[predicted_class],
-            "confidence": round(confidence, 2),
-        }
+            return {
+                "rating": self.rating_map[predicted_class],
+                "confidence": round(confidence, 2),
+            }
+        except Exception as e:
+            logger.error("XGBoost prediction failed: %s", e)
+            return None
 
     def _extract_features(self, financials: list[dict]) -> list[float]:
         """Extract feature vector from quarterly financial data.
