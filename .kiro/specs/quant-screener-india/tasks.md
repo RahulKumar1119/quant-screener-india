@@ -6,8 +6,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 
 ## Tasks
 
-- [ ] 1. Project scaffolding and configuration
-  - [ ] 1.1 Initialize frontend project with Rsbuild, React 19, TypeScript, and Tailwind CSS
+- [x] 1. Project scaffolding and configuration
+  - [x] 1.1 Initialize frontend project with Rsbuild, React 19, TypeScript, and Tailwind CSS
     - Create `package.json` with dependencies: react, react-dom, react-router-dom, recharts, lightweight-charts, @tanstack/react-table, tailwindcss
     - Create `rsbuild.config.ts` with dev server on port 3000 and API proxy to localhost:8000
     - Create `tailwind.config.ts` with `darkMode: "class"` and default Tailwind breakpoints
@@ -15,7 +15,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Create `src/main.tsx` entry point rendering `<App />` into `#root`
     - _Requirements: 10.1, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ] 1.2 Initialize backend project with FastAPI, jugaad-data, and ML dependencies
+  - [x] 1.2 Initialize backend project with FastAPI, jugaad-data, and ML dependencies
     - Create `backend/requirements.txt` with: fastapi, uvicorn, jugaad-data, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic, boto3
     - Create `backend/` directory structure: `app.py`, `nse_client.py`, `cache.py`, `rate_limiter.py`, `schemas.py`, `ml_models/__init__.py`
     - Create `backend/model_artifacts/` directory with placeholder `.gitkeep` files for model weights
