@@ -44,7 +44,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Implement `get_or_fetch(cache, key, fetcher)` method with lock-free fetch pattern
     - _Requirements: 9.6_
 
-  - [ ]* 3.2 Write property test for cache TTL expiry (Property 13)
+  - [x]* 3.2 Write property test for cache TTL expiry (Property 13)
     - **Property 13: Cache TTL expiry guarantees freshness**
     - **Validates: Requirements 9.6**
 
