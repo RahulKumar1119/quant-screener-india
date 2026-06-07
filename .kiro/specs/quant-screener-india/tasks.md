@@ -48,8 +48,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 13: Cache TTL expiry guarantees freshness**
     - **Validates: Requirements 9.6**
 
-- [ ] 4. Backend: Rate limiter
-  - [ ] 4.1 Implement `backend/rate_limiter.py` with token bucket algorithm
+- [x] 4. Backend: Rate limiter
+  - [x] 4.1 Implement `backend/rate_limiter.py` with token bucket algorithm
     - Create `RateLimiter` class with asyncio lock and deque of timestamps
     - Configure max 5 requests per 1-second window
     - Implement `acquire()` async method that waits for available slot
