@@ -145,7 +145,7 @@ async def get_all_tickers(request: Request):
 
     try:
         constituents = cache.get_or_fetch(
-            cache.nifty500,
+            "nifty500",
             "nifty500_constituents",
             nse_client.get_nifty500_constituents,
         )
@@ -215,7 +215,7 @@ async def get_ticker(ticker: str, request: Request):
     # --- Fetch live quote ---
     try:
         quote = cache.get_or_fetch(
-            cache.live_quotes,
+            "live_quotes",
             f"quote_{ticker}",
             lambda: nse_client.get_live_quote(ticker),
         )
@@ -246,7 +246,7 @@ async def get_ticker(ticker: str, request: Request):
     # --- Fetch historical OHLC ---
     try:
         historical_df = cache.get_or_fetch(
-            cache.historical,
+            "historical",
             f"historical_{ticker}",
             lambda: nse_client.get_historical_ohlc(ticker, days=30),
         )
@@ -261,7 +261,7 @@ async def get_ticker(ticker: str, request: Request):
     # --- Fetch quarterly financials ---
     try:
         raw_financials = cache.get_or_fetch(
-            cache.financials,
+            "financials",
             f"financials_{ticker}",
             lambda: nse_client.get_quarterly_financials(ticker),
         )

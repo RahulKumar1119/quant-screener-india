@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DynamoDB cache table with TTL and DAX cluster for Quant Screener India
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging]
+
+Resources:
+  # DynamoDB Cache Table
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: quant-screener-cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cache_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cache_key
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: quant-screener-india
+        - Key: Environment
+          Value: !Ref Environment
+
+  # DAX Cluster for sub-millisecond cache reads
+  DAXSubnetGroup:
+    Type: AWS::DAX::SubnetGroup
+    Properties:
+      SubnetGroupName: quant-screener-dax-subnet
+      Description: Subnet group for DAX cache cluster
+      SubnetIds:
+        - !Ref DAXSubnet
+
+  DAXCluster:
+    Type: AWS::DAX::Cluster
+    Properties:
+      ClusterName: quant-screener-dax
+      Description: DAX accelerator for DynamoDB cache reads
+      NodeType: dax.t3.small
+      ReplicationFactor: 1
+      IAMRoleARN: !GetAtt DAXRole.Arn
+      SubnetGroupName: !Ref DAXSubnetGroup
+      SSESpecification:
+        SSEEnabled: true
+
+  # IAM Role for DAX to access DynamoDB
+  DAXRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: quant-screener-dax-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: dax.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:DescribeTable
+                Resource: !GetAtt CacheTable.Arn
+
+Outputs:
+  CacheTableName:
+    Value: !Ref CacheTable
+    Export:
+      Name: !Sub '${AWS::StackName}-CacheTableName'
+
+  CacheTableArn:
+    Value: !GetAtt CacheTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-CacheTableArn'
+
+  DAXClusterEndpoint:
+    Value: !GetAtt DAXCluster.ClusterDiscoveryEndpointURL
+    Export:
+      Name: !Sub '${AWS::StackName}-DAXEndpoint'
