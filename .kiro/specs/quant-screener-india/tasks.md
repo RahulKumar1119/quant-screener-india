@@ -175,12 +175,12 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Export ThresholdRule type and ratingColorMap for XGBoost badge colors
     - _Requirements: 3.3, 5.3_
 
-  - [ ]* 10.9 Write property test for threshold badge color mapping (Property 4)
+  - [x]* 10.9 Write property test for threshold badge color mapping (Property 4)
     - **Property 4: Threshold badge color mapping**
     - **Validates: Requirements 3.3**
 
-- [ ] 11. Frontend: API client with error handling
-  - [ ] 11.1 Implement `src/api/client.ts`
+- [x] 11. Frontend: API client with error handling
+  - [x] 11.1 Implement `src/api/client.ts`
     - Implement `fetchTickerData(ticker)`: GET /api/screener/{ticker}, parse JSON, handle 503/429/404 errors
     - Implement `fetchAllTickers()`: GET /api/screener/all, parse JSON
     - Return typed ErrorResponse on HTTP errors with retry_after extraction
