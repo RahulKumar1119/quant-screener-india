@@ -134,8 +134,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Define Theme type ("dark" | "light")
     - _Requirements: 13.4_
 
-- [ ] 10. Frontend: Utility modules
-  - [ ] 10.1 Implement `src/utils/indianFormat.ts`
+- [x] 10. Frontend: Utility modules
+  - [x] 10.1 Implement `src/utils/indianFormat.ts`
     - Implement `formatIndianCurrency(value)`: ≥1Cr → "₹X.XX Cr", ≥1L → "₹X.XX L", else Indian comma grouping
     - Implement `indianCommaGrouping(value)`: rightmost 3 digits, then groups of 2
     - Implement `formatPercentage(value)`: "X.X%"
@@ -145,16 +145,16 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 3: Indian currency formatting correctness**
     - **Validates: Requirements 3.2, 6.2, 11.1, 11.2**
 
-  - [ ] 10.3 Implement `src/utils/tradingDates.ts`
+  - [x] 10.3 Implement `src/utils/tradingDates.ts`
     - Implement `generateTradingDates(startDate, count)`: produces weekday-only date strings
     - Implement `isWeekday(dateStr)`: returns true for Mon-Fri
     - _Requirements: 4.4, 11.4_
 
-  - [ ]* 10.4 Write property test for trading date axis (Property 5)
+  - [x]* 10.4 Write property test for trading date axis (Property 5)
     - **Property 5: Trading date axis excludes weekends**
     - **Validates: Requirements 4.4, 11.4**
 
-  - [ ] 10.5 Implement `src/utils/queryParser.ts`
+  - [x] 10.5 Implement `src/utils/queryParser.ts`
     - Implement `parseQuery(input)`: tokenize → parse conditions → validate fields → return ParsedQuery or QueryParseError
     - Implement `evaluateQuery(query, ticker)`: evaluate conditions against ticker fields with AND/OR logic
     - Support fields: Market Cap, PE, ROE, ROCE, Dividend Yield, AI_Rating, AI_Confidence, TFT_Score
@@ -162,15 +162,15 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Return error with position on invalid input
     - _Requirements: 8.2, 8.4, 8.6, 8.7_
 
-  - [ ]* 10.6 Write property test for screener query filtering (Property 8)
+  - [x]* 10.6 Write property test for screener query filtering (Property 8)
     - **Property 8: Custom screener query filtering**
     - **Validates: Requirements 8.4, 8.6**
 
-  - [ ]* 10.7 Write property test for invalid query error reporting (Property 9)
+  - [x]* 10.7 Write property test for invalid query error reporting (Property 9)
     - **Property 9: Invalid query error reporting**
     - **Validates: Requirements 8.7**
 
-  - [ ] 10.8 Implement `src/utils/thresholds.ts`
+  - [x] 10.8 Implement `src/utils/thresholds.ts`
     - Implement `getBadgeColor(field, value)` with threshold rules: PE<25 green, ROE>15 green, ROCE>15 green, Dividend Yield>1.5 green
     - Export ThresholdRule type and ratingColorMap for XGBoost badge colors
     - _Requirements: 3.3, 5.3_

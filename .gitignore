@@ -4,3 +4,6 @@ dist/
 *.log
 .vscode
 .DS_Store
+# Python bytecode / cache files
+__pycache__/
+*.pyc
