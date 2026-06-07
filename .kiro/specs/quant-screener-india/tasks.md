@@ -119,7 +119,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 10: API response schema conformance with live data**
     - **Validates: Requirements 9.1, 9.5**
 
-- [ ] 8. Checkpoint - Backend complete
+- [x] 8. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 9. Frontend: TypeScript types
@@ -220,25 +220,25 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Display sun/moon icon based on current theme
     - _Requirements: 2.2, 2.3_
 
-- [ ] 14. Checkpoint - Core structure and utilities complete
+- [x] 14. Checkpoint - Core structure and utilities complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 15. Frontend: Analytics page components
-  - [ ] 15.1 Implement `src/hooks/useTickerData.ts`
+  - [x] 15.1 Implement `src/hooks/useTickerData.ts`
     - Fetch from `/api/screener/{ticker}` on ticker change using `fetchTickerData`
     - Cache responses in `useRef` map to avoid refetching within session
     - Expose `data`, `loading`, `error`, `isPartial` state (isPartial=true when ML fields are null)
     - Handle 503 and 429 errors with appropriate error state
     - _Requirements: 1.5, 9.1, 9.16_
 
-  - [ ] 15.2 Implement `src/components/ProfileCardGrid.tsx`
+  - [x] 15.2 Implement `src/components/ProfileCardGrid.tsx`
     - Render 5 metric cards: Market Cap, PE, ROE, ROCE, Dividend Yield
     - Format values using `formatIndianCurrency` and `formatPercentage`
     - Apply color-coded badges using `getBadgeColor` from thresholds utility
     - Responsive grid: `grid-cols-2 md:grid-cols-3 lg:grid-cols-5`
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-  - [ ] 15.3 Implement `src/components/PriceChart.tsx` with TradingView Lightweight Charts
+  - [x] 15.3 Implement `src/components/PriceChart.tsx` with TradingView Lightweight Charts
     - Render line chart with 30-day historical closing prices (solid gray line)
     - Render LSTM projection as dashed Royal Blue line extending 7 trading days
     - Use YYYY-MM-DD date strings (weekday-only, TradingView skips gaps natively)
@@ -247,13 +247,13 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Responsive via ResizeObserver: 350px desktop, 250px mobile
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ] 15.4 Implement `src/components/TFTScoreGauge.tsx`
+  - [x] 15.4 Implement `src/components/TFTScoreGauge.tsx`
     - Render gauge visualization for TFT Macro Resilience Score (0-100)
     - Display trend outlook label (Bullish/Bearish/Neutral)
     - Handle null `tft_score` with "ML analysis unavailable" placeholder
     - _Requirements: 5.1_
 
-  - [ ] 15.5 Implement `src/components/XGBoostRatingBadge.tsx`
+  - [x] 15.5 Implement `src/components/XGBoostRatingBadge.tsx`
     - Render badge with rating text and confidence percentage
     - Apply color from ratingColorMap: emerald-600 STRONG BUY, green-500 BUY, amber-500 HOLD, red-600 SELL
     - Handle null `xgboost` with "Rating unavailable" placeholder
@@ -263,13 +263,13 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 6: XGBoost rating badge color correctness**
     - **Validates: Requirements 5.3**
 
-  - [ ] 15.7 Implement `src/components/IntelEngineDashboard.tsx`
+  - [x] 15.7 Implement `src/components/IntelEngineDashboard.tsx`
     - Compose PriceChart + TFTScoreGauge + XGBoostRatingBadge in split layout
     - Desktop: `lg:flex-row` with 70/30 chart/scoring split
     - Mobile: `flex-col` stacking chart above scoring
     - _Requirements: 5.4, 5.5_
 
-  - [ ] 15.8 Implement `src/components/FinancialTable.tsx` with TanStack Table
+  - [x] 15.8 Implement `src/components/FinancialTable.tsx` with TanStack Table
     - Render quarterly financial data: Revenue, Expenses, Operating Profit, Net Profit, Margin %
     - Format monetary values with `formatIndianCurrency` (Crores)
     - Apply alternating row shading, right-align numeric columns
@@ -281,13 +281,13 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 7: Financial table column sorting**
     - **Validates: Requirements 6.5**
 
-  - [ ] 15.10 Implement `src/components/GemmaSummaryCard.tsx`
+  - [x] 15.10 Implement `src/components/GemmaSummaryCard.tsx`
     - Render SEBI-style narrative summary in a distinct callout card
     - Label clearly as "AI-Generated Analysis"
     - Handle empty gemma_summary string with "Summary unavailable" placeholder
     - _Requirements: 7.1, 7.2, 7.3_
 
-  - [ ] 15.11 Implement `src/components/AnalyticsPage.tsx`
+  - [x] 15.11 Implement `src/components/AnalyticsPage.tsx`
     - Compose ProfileCardGrid → IntelEngineDashboard → FinancialTable → GemmaSummaryCard
     - Read ticker from URL param (default to "JNKINDIA")
     - Use `useTickerData` hook for data fetching
