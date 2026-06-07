@@ -93,8 +93,8 @@ export function ScreenerResultsGrid({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 min-w-0">
+        <table className="w-full min-w-[700px] text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th

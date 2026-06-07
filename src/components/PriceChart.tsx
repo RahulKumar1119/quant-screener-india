@@ -89,7 +89,7 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
   }, [historical, lstmProjection]);
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0">
       <div className="flex items-center gap-4 mb-2 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
           <span className="inline-block w-4 h-0.5 bg-gray-500" />
@@ -102,7 +102,7 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
           </span>
         )}
       </div>
-      <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+      <div ref={containerRef} className="w-full min-w-0 rounded-lg overflow-hidden" />
     </div>
   );
 }

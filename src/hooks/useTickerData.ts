@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { TickerResponse } from "../types/index";
 import { fetchTickerData, ApiError } from "../api/client";
+import { SAMPLE_TICKER } from "../mocks/sampleData";
 
 interface UseTickerDataReturn {
   data: TickerResponse | null;
@@ -11,7 +12,7 @@ interface UseTickerDataReturn {
 
 /**
  * Hook to fetch and cache ticker data from the API.
- * Caches responses in a ref map to avoid refetching within the session.
+ * Falls back to sample data when the backend is unreachable (dev mode without backend).
  */
 export function useTickerData(ticker: string): UseTickerDataReturn {
   const [data, setData] = useState<TickerResponse | null>(null);
@@ -40,6 +41,14 @@ export function useTickerData(ticker: string): UseTickerDataReturn {
       setData(response);
       setError(null);
     } catch (err: unknown) {
+      // Fallback to sample data when backend is unreachable
+      if (err instanceof Error && err.message.includes("Network error")) {
+        const fallback = { ...SAMPLE_TICKER, ticker: symbol, company_name: `${symbol} (Demo Data)` };
+        setData(fallback);
+        setError(null);
+        return;
+      }
+
       setData(null);
       if (err instanceof ApiError) {
         switch (err.statusCode) {

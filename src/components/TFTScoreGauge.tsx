@@ -39,6 +39,10 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
 
   const fillColor = getScoreColor(score);
 
+  // Theme-aware remaining color for gauge background
+  const isDark = document.documentElement.classList.contains("dark");
+  const remainingColor = isDark ? "#374151" : "#e5e7eb"; // gray-700 / gray-200
+
   return (
     <div className="flex flex-col items-center p-4">
       <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
@@ -59,7 +63,7 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
             stroke="none"
           >
             <Cell fill={fillColor} />
-            <Cell fill="#e5e7eb" />
+            <Cell fill={remainingColor} />
           </Pie>
         </PieChart>
         <div className="absolute inset-0 flex items-end justify-center pb-1">

@@ -223,7 +223,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - [x] 14. Checkpoint - Core structure and utilities complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 15. Frontend: Analytics page components
+- [x] 15. Frontend: Analytics page components
   - [x] 15.1 Implement `src/hooks/useTickerData.ts`
     - Fetch from `/api/screener/{ticker}` on ticker change using `fetchTickerData`
     - Cache responses in `useRef` map to avoid refetching within session
@@ -294,7 +294,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Show loading skeleton, error states (503 banner with retry, 404 message), and partial response handling
     - _Requirements: 1.5, 9.16_
 
-- [ ] 16. Frontend: Custom screener page
+- [x] 16. Frontend: Custom screener page
   - [x] 16.1 Implement `src/hooks/useScreenerQuery.ts`
     - Fetch `/api/screener/all` once on mount, cache full dataset
     - Expose `executeQuery(queryText)`: parse → filter cached dataset → set results
@@ -341,7 +341,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - [x] 18. Checkpoint - Full frontend and backend wired together
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 19. Integration tests and backend connectivity
+- [x] 19. Integration tests and backend connectivity
   - [ ]* 19.1 Write integration tests for backend NSE connectivity
     - Test backend fetches valid live quote for known tickers (RELIANCE, TCS, INFY)
     - Test backend returns 503 when NSE session cannot be established
@@ -352,8 +352,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Test /api/screener/all returns Nifty 500 constituents with required fields
     - _Requirements: 9.1, 9.6, 9.9, 9.16, 9.17_
 
-- [ ] 20. Responsive design polish
-  - [ ] 20.1 Apply responsive design refinements across all components
+- [x] 20. Responsive design polish
+  - [x] 20.1 Apply responsive design refinements across all components
     - Verify NavigationHeader collapses search to icon on mobile
     - Verify ProfileCardGrid flows 2→3→5 columns across breakpoints
     - Verify IntelEngineDashboard stacks chart above ML panel on mobile
@@ -362,7 +362,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Test all layouts at 320px, 768px, 1024px, 1280px, 1920px widths
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 1.6, 3.4, 4.5, 5.5, 6.6_
 
-- [ ] 21. Final checkpoint - All features complete
+- [x] 21. Final checkpoint - All features complete
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

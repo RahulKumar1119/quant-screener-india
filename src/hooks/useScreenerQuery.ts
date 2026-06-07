@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import type { TickerSummary, QueryParseError } from "../types/index";
 import { fetchAllTickers } from "../api/client";
 import { parseQuery, evaluateQuery } from "../utils/queryParser";
+import { SAMPLE_ALL_TICKERS } from "../mocks/sampleData";
 
 interface UseScreenerQueryReturn {
   results: TickerSummary[];
@@ -35,6 +36,8 @@ export function useScreenerQuery(pageSize = 20): UseScreenerQueryReturn {
         }
       } catch {
         if (!cancelled) {
+          // Fallback to sample data when backend is unreachable
+          setAllTickers(SAMPLE_ALL_TICKERS.tickers);
           setLoading(false);
         }
       }

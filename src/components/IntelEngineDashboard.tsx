@@ -24,7 +24,7 @@ export function IntelEngineDashboard({
   return (
     <div className="flex flex-col lg:flex-row gap-4">
       {/* Chart section - 70% on desktop */}
-      <div className="w-full lg:w-[70%] rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div className="w-full lg:w-[70%] min-w-0 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
         <PriceChart historical={historical} lstmProjection={lstmProjection} />
       </div>
 

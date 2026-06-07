@@ -60,8 +60,8 @@ export function FinancialTable({ financials }: FinancialTableProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 min-w-0">
+      <table className="w-full min-w-[600px] text-sm">
         <thead className="bg-gray-100 dark:bg-gray-800">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
