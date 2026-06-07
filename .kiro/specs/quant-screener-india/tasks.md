@@ -33,8 +33,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Include session refresh logic on 401/403 responses
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.7, 9.8_
 
-- [ ] 3. Backend: TTL caching layer
-  - [ ] 3.1 Implement `backend/cache.py` with 5-tier TTL caching
+- [x] 3. Backend: TTL caching layer
+  - [x] 3.1 Implement `backend/cache.py` with 5-tier TTL caching
     - Create `CacheManager` class with `threading.Lock` for thread-safety
     - Configure `live_quotes` TTLCache: maxsize=1000, ttl=300 (5 min)
     - Configure `historical` TTLCache: maxsize=500, ttl=86400 (24 hr)
@@ -56,8 +56,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Implement exponential backoff on NSE 429 responses (2^n seconds, max 60s)
     - _Requirements: 9.17_
 
-- [ ] 5. Backend: Pydantic response schemas
-  - [ ] 5.1 Implement `backend/schemas.py` with all response models
+- [x] 5. Backend: Pydantic response schemas
+  - [x] 5.1 Implement `backend/schemas.py` with all response models
     - Define `TickerProfile` model (market_cap, pe_ratio, roe, roce, dividend_yield)
     - Define `XGBoostOutput` model (rating: Literal enum, confidence: float 0-1)
     - Define `LSTMProjection` model (dates: list[str], prices: list[float])
@@ -122,8 +122,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - [ ] 8. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Frontend: TypeScript types
-  - [ ] 9.1 Implement `src/types/index.ts` with all type definitions
+- [x] 9. Frontend: TypeScript types
+  - [x] 9.1 Implement `src/types/index.ts` with all type definitions
     - Define AIRating, TrendOutlook literal union types
     - Define TickerProfile, XGBoostOutput, LSTMProjection, TFTOutput interfaces
     - Define QuarterlyFinancial, HistoricalData interfaces
