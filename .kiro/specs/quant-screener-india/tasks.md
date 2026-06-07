@@ -295,25 +295,25 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - _Requirements: 1.5, 9.16_
 
 - [ ] 16. Frontend: Custom screener page
-  - [ ] 16.1 Implement `src/hooks/useScreenerQuery.ts`
+  - [x] 16.1 Implement `src/hooks/useScreenerQuery.ts`
     - Fetch `/api/screener/all` once on mount, cache full dataset
     - Expose `executeQuery(queryText)`: parse → filter cached dataset → set results
     - Expose `results`, `error`, `loading` state
     - _Requirements: 8.4_
 
-  - [ ] 16.2 Implement `src/components/QueryInputArea.tsx`
+  - [x] 16.2 Implement `src/components/QueryInputArea.tsx`
     - Render multiline text input for query entry
     - Submit button triggers `executeQuery`
     - Display inline error messages with position indicator on parse failure
     - _Requirements: 8.2, 8.7_
 
-  - [ ] 16.3 Implement `src/components/HelperPanel.tsx`
+  - [x] 16.3 Implement `src/components/HelperPanel.tsx`
     - Display all available query fields (Market Cap, PE, ROE, ROCE, Dividend Yield, AI_Rating, AI_Confidence, TFT_Score)
     - Display supported operators (>, <, >=, <=, =, !=, AND, OR)
     - Show example queries
     - _Requirements: 8.3_
 
-  - [ ] 16.4 Implement `src/components/ScreenerResultsGrid.tsx`
+  - [x] 16.4 Implement `src/components/ScreenerResultsGrid.tsx`
     - Render filtered results in a paginated, sortable TanStack Table grid
     - Display ticker, company name, market cap, PE, ROE, AI rating, TFT score columns
     - Format values with Indian localization
@@ -324,14 +324,14 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - **Property 11: Screener results pagination**
     - **Validates: Requirements 8.5**
 
-  - [ ] 16.6 Implement `src/components/CustomScreenerPage.tsx`
+  - [x] 16.6 Implement `src/components/CustomScreenerPage.tsx`
     - Compose QueryInputArea + HelperPanel + ScreenerResultsGrid
     - Desktop: `md:flex-row` with 70/30 query/helper split
     - Mobile: stack vertically
     - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 17. Frontend: App routing and layout
-  - [ ] 17.1 Implement `src/App.tsx` with React Router and ThemeProvider
+- [x] 17. Frontend: App routing and layout
+  - [x] 17.1 Implement `src/App.tsx` with React Router and ThemeProvider
     - Wrap app in ThemeProvider context
     - Define routes: `/` → AnalyticsPage (default JNKINDIA), `/:ticker` → AnalyticsPage, `/screener` → CustomScreenerPage
     - Render NavigationHeader above RouterOutlet on all routes
