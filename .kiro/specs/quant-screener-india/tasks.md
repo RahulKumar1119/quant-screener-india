@@ -21,8 +21,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Create `backend/model_artifacts/` directory with placeholder `.gitkeep` files for model weights
     - _Requirements: 9.10, 9.18_
 
-- [ ] 2. Backend: NSE data client and session management
-  - [ ] 2.1 Implement `backend/nse_client.py` with NSELive integration
+- [x] 2. Backend: NSE data client and session management
+  - [x] 2.1 Implement `backend/nse_client.py` with NSELive integration
     - Create `NSEClient` class with `_ensure_session()` method for NSE cookie management
     - Implement `get_live_quote(symbol)` using `NSELive().stock_quote(symbol)` returning priceInfo and metadata
     - Implement `get_historical_ohlc(symbol, days=30)` using `stock_df()` from jugaad-data
