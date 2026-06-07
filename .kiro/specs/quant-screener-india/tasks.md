@@ -338,7 +338,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Apply `max-w-7xl mx-auto px-4` container
     - _Requirements: 1.5, 8.1, 10.6_
 
-- [ ] 18. Checkpoint - Full frontend and backend wired together
+- [x] 18. Checkpoint - Full frontend and backend wired together
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 19. Integration tests and backend connectivity
