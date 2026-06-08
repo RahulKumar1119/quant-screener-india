@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Quant Screener India - FastAPI Backend on Lambda
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+    Runtime: python3.10
+
+Resources:
+  QuantScreenerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: quant-screener-backend
+      Handler: app.handler
+      CodeUri: .
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          CACHE_TABLE_NAME: quant-screener-cache
+          AWS_DEFAULT_REGION: ap-south-1
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: quant-screener-cache
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ApiCatchAll:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt QuantScreenerFunction.Arn

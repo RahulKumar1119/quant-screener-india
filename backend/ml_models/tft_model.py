@@ -1,18 +1,29 @@
-"""TFT (Temporal Fusion Transformer) model wrapper for Macro Resilience Score."""
+"""TFT (Temporal Fusion Transformer) model wrapper using SageMaker Serverless Inference.
+
+Invokes the quant-screener-tft SageMaker endpoint to produce a Macro Resilience
+Score from RBI REPO rate and Nifty sector indices. Falls back to a heuristic
+scoring method when the endpoint is unavailable.
+"""
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
-import torch
+import boto3
+from botocore.exceptions import (
+    ClientError,
+    EndpointConnectionError,
+    ReadTimeoutError,
+    ConnectTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
 # Default sector names used for feature vector construction.
-# These correspond to Nifty sector indices commonly tracked.
 DEFAULT_SECTORS = [
     "NIFTY BANK",
     "NIFTY IT",
@@ -30,37 +41,39 @@ DEFAULT_SECTORS = [
 class TFTModel:
     """Produces Macro Resilience Score from RBI REPO rate + sector indices.
 
-    The model takes macro-economic features (RBI repo rate and Nifty sector
-    index values) and outputs a score between 0-100 representing overall
-    market macro resilience, along with a trend outlook classification.
+    Sends macro-economic features to the quant-screener-tft SageMaker
+    Serverless Inference endpoint. Returns a score (0-100) and trend outlook.
+    Falls back to heuristic scoring when the endpoint is unavailable.
     """
 
-    def __init__(self, model_path: str = "model_artifacts/tft_macro.pt"):
-        """Load the pre-trained TFT PyTorch model.
+    def __init__(self, model_path: str = ""):
+        """Initialize the SageMaker runtime client.
 
         Args:
-            model_path: Path to the .pt model artifact file.
+            model_path: Unused in SageMaker mode. Kept for interface compatibility.
         """
-        self.model = None
-        self.model_path = model_path
-
-        if os.path.exists(model_path):
-            try:
-                self.model = torch.load(model_path, map_location="cpu")
-                self.model.eval()
-                logger.info("TFT model loaded from %s", model_path)
-            except Exception as e:
-                logger.warning("Failed to load TFT model from %s: %s", model_path, e)
-                self.model = None
-        else:
-            logger.warning(
-                "TFT model file not found at %s. "
-                "Predictions will use fallback scoring.",
-                model_path,
-            )
+        self.endpoint_name = os.environ.get(
+            "TFT_ENDPOINT", "quant-screener-tft"
+        )
+        self.client = boto3.client(
+            "sagemaker-runtime",
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            config=boto3.session.Config(
+                read_timeout=30,
+                connect_timeout=10,
+                retries={"max_attempts": 1},
+            ),
+        )
+        logger.info(
+            "TFT model configured to use SageMaker endpoint: %s",
+            self.endpoint_name,
+        )
 
     def predict(self, repo_rate: float, sector_indices: dict[str, float]) -> dict:
-        """Produce Macro Resilience Score and trend outlook.
+        """Produce Macro Resilience Score and trend outlook via SageMaker.
+
+        Attempts to invoke the SageMaker endpoint. If the endpoint is
+        unavailable, falls back to heuristic scoring.
 
         Args:
             repo_rate: RBI REPO rate as a float (e.g. 6.5 for 6.5%).
@@ -71,46 +84,80 @@ class TFTModel:
                 - "score": int in range [0, 100]
                 - "trend_outlook": "Bullish" | "Bearish" | "Neutral"
         """
-        if self.model is not None:
-            features = self._build_feature_tensor(repo_rate, sector_indices)
-            with torch.no_grad():
-                output = self.model(features)
-            score = int(torch.clamp(output[0] * 100, 0, 100).item())
-        else:
-            # Fallback: heuristic scoring when model is unavailable
+        try:
+            payload = json.dumps({
+                "repo_rate": repo_rate,
+                "sector_indices": sector_indices,
+            })
+
+            response = self.client.invoke_endpoint(
+                EndpointName=self.endpoint_name,
+                ContentType="application/json",
+                Accept="application/json",
+                Body=payload,
+            )
+
+            result = json.loads(response["Body"].read().decode("utf-8"))
+
+            score = result.get("score")
+            trend_outlook = result.get("trend_outlook")
+
+            if score is not None and trend_outlook is not None:
+                score = max(0, min(100, int(score)))
+                return {"score": score, "trend_outlook": trend_outlook}
+
+            # If response doesn't have expected fields, use raw output
+            raw_score = result.get("predictions", [None])[0]
+            if raw_score is not None:
+                score = max(0, min(100, int(float(raw_score) * 100)))
+                trend = self._score_to_trend(score)
+                return {"score": score, "trend_outlook": trend}
+
+            # Unexpected response format — fall back to heuristic
+            logger.warning(
+                "Unexpected response from TFT endpoint, using fallback scoring"
+            )
             score = self._fallback_score(repo_rate, sector_indices)
+            trend = self._score_to_trend(score)
+            return {"score": score, "trend_outlook": trend}
 
-        trend = self._score_to_trend(score)
-        return {"score": score, "trend_outlook": trend}
-
-    def _build_feature_tensor(
-        self, repo_rate: float, sector_indices: dict[str, float]
-    ) -> torch.Tensor:
-        """Build input feature tensor from macro data.
-
-        Feature vector layout: [repo_rate, sector_1_value, sector_2_value, ...]
-        Sector values are normalized by dividing by 10000 for numerical stability.
-
-        Args:
-            repo_rate: RBI REPO rate.
-            sector_indices: Dict of sector name -> index value.
-
-        Returns:
-            Tensor of shape (1, num_features) suitable for model input.
-        """
-        features = [repo_rate / 10.0]  # Normalize repo rate (typically 4-8%)
-
-        for sector in DEFAULT_SECTORS:
-            value = sector_indices.get(sector, 0.0)
-            features.append(value / 10000.0)  # Normalize index values
-
-        feature_array = np.array(features, dtype=np.float32)
-        return torch.tensor(feature_array, dtype=torch.float32).unsqueeze(0)
+        except (ClientError, EndpointConnectionError) as e:
+            logger.warning(
+                "SageMaker TFT endpoint unavailable: %s. Using fallback scoring.",
+                str(e),
+            )
+            score = self._fallback_score(repo_rate, sector_indices)
+            trend = self._score_to_trend(score)
+            return {"score": score, "trend_outlook": trend}
+        except (ReadTimeoutError, ConnectTimeoutError) as e:
+            logger.warning(
+                "SageMaker TFT endpoint timeout: %s. Using fallback scoring.",
+                str(e),
+            )
+            score = self._fallback_score(repo_rate, sector_indices)
+            trend = self._score_to_trend(score)
+            return {"score": score, "trend_outlook": trend}
+        except (ConnectionError, OSError) as e:
+            logger.warning(
+                "SageMaker TFT connection error: %s. Using fallback scoring.",
+                str(e),
+            )
+            score = self._fallback_score(repo_rate, sector_indices)
+            trend = self._score_to_trend(score)
+            return {"score": score, "trend_outlook": trend}
+        except Exception as e:
+            logger.warning(
+                "Unexpected error invoking TFT endpoint: %s. Using fallback scoring.",
+                str(e),
+            )
+            score = self._fallback_score(repo_rate, sector_indices)
+            trend = self._score_to_trend(score)
+            return {"score": score, "trend_outlook": trend}
 
     def _fallback_score(
         self, repo_rate: float, sector_indices: dict[str, float]
     ) -> int:
-        """Compute a heuristic score when model artifact is unavailable.
+        """Compute a heuristic score when the SageMaker endpoint is unavailable.
 
         Uses a simple weighted average of sector momentum signals and
         repo rate positioning to produce a reasonable estimate.
@@ -125,7 +172,6 @@ class TFTModel:
         if not sector_indices:
             return 50  # Neutral when no data available
 
-        # Simple heuristic: average sector index position relative to baseline
         sector_values = list(sector_indices.values())
         avg_sector = np.mean(sector_values) if sector_values else 0.0
 

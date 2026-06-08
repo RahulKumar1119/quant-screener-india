@@ -1,45 +1,63 @@
-"""LSTM Model wrapper for 7-day price projection from 30-day historical OHLC."""
+"""LSTM Model wrapper using SageMaker Serverless Inference endpoint.
 
+Invokes the quant-screener-lstm SageMaker endpoint to produce a 7-day price
+projection from 30-day historical OHLC closing prices.
+"""
+
+from __future__ import annotations
+
+import json
 import logging
+import os
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+import boto3
+from botocore.exceptions import (
+    ClientError,
+    EndpointConnectionError,
+    ReadTimeoutError,
+    ConnectTimeoutError,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class LSTMModel:
-    """Produces 7-day price projection from 30-day historical OHLC closing prices.
+    """Produces 7-day price projection from 30-day historical OHLC via SageMaker.
 
-    Loads a pre-trained Keras LSTM model from an .h5 file and performs
-    auto-regressive prediction of 7 future trading days.
+    Sends normalized close prices to the quant-screener-lstm SageMaker
+    Serverless Inference endpoint and receives 7-day predictions.
+    Falls back to None if the endpoint is unavailable.
     """
 
     SEQUENCE_LENGTH = 30
     PREDICTION_STEPS = 7
 
-    def __init__(self, model_path: str = "model_artifacts/lstm_price.h5"):
-        self.model = None
-        self.model_path = Path(model_path)
+    def __init__(self, model_path: str = ""):
+        """Initialize the SageMaker runtime client.
 
-        if not self.model_path.exists():
-            logger.warning(
-                "LSTM model file not found at %s. Predictions will be unavailable.",
-                self.model_path,
-            )
-            return
-
-        try:
-            from tensorflow import keras
-
-            self.model = keras.models.load_model(str(self.model_path))
-            logger.info("LSTM model loaded successfully from %s", self.model_path)
-        except Exception as e:
-            logger.error("Failed to load LSTM model from %s: %s", self.model_path, e)
-            self.model = None
+        Args:
+            model_path: Unused in SageMaker mode. Kept for interface compatibility.
+        """
+        self.endpoint_name = os.environ.get(
+            "LSTM_ENDPOINT", "quant-screener-lstm"
+        )
+        self.client = boto3.client(
+            "sagemaker-runtime",
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            config=boto3.session.Config(
+                read_timeout=60,
+                connect_timeout=10,
+                retries={"max_attempts": 1},
+            ),
+        )
+        logger.info(
+            "LSTM model configured to use SageMaker endpoint: %s",
+            self.endpoint_name,
+        )
 
     def predict(self, historical_df: pd.DataFrame) -> Optional[Dict]:
         """Predict 7-day price projection from 30-day historical close prices.
@@ -51,10 +69,6 @@ class LSTMModel:
             Dictionary with 'dates' (list of 7 date strings) and 'prices'
             (list of 7 floats), or None if prediction fails.
         """
-        if self.model is None:
-            logger.warning("LSTM model not loaded. Cannot produce predictions.")
-            return None
-
         if historical_df is None or len(historical_df) < self.SEQUENCE_LENGTH:
             logger.warning(
                 "Insufficient historical data: need %d rows, got %d.",
@@ -71,42 +85,75 @@ class LSTMModel:
             )
 
             # Normalize using mean/std
-            mean_price = close_prices.mean()
-            std_price = close_prices.std()
-
-            # Avoid division by zero if all prices are identical
+            mean_price = float(close_prices.mean())
+            std_price = float(close_prices.std())
             if std_price == 0:
                 std_price = 1.0
 
-            normalized = (close_prices - mean_price) / std_price
+            normalized = ((close_prices - mean_price) / std_price).tolist()
 
-            # Reshape for LSTM input: (batch_size=1, timesteps=30, features=1)
-            input_seq = normalized.reshape(1, self.SEQUENCE_LENGTH, 1)
+            # Send normalized prices to SageMaker endpoint
+            payload = json.dumps({
+                "close_prices": normalized,
+                "mean_price": mean_price,
+                "std_price": std_price,
+            })
 
-            # Auto-regressive prediction: feed each prediction back into the sequence
-            predictions = []
-            current_seq = input_seq.copy()
+            response = self.client.invoke_endpoint(
+                EndpointName=self.endpoint_name,
+                ContentType="application/json",
+                Accept="application/json",
+                Body=payload,
+            )
 
-            for _ in range(self.PREDICTION_STEPS):
-                pred = self.model.predict(current_seq, verbose=0)[0, 0]
-                predictions.append(float(pred))
-                # Shift sequence left and append the new prediction
-                current_seq = np.roll(current_seq, -1, axis=1)
-                current_seq[0, -1, 0] = pred
+            result = json.loads(response["Body"].read().decode("utf-8"))
 
-            # Denormalize predictions back to price scale
-            prices = [(p * std_price + mean_price) for p in predictions]
+            # Endpoint returns denormalized prices directly
+            prices = result.get("prices", [])
+
+            if not prices or len(prices) != self.PREDICTION_STEPS:
+                # If endpoint returns normalized predictions, denormalize here
+                predictions = result.get("predictions", [])
+                if predictions and len(predictions) == self.PREDICTION_STEPS:
+                    prices = [
+                        round(p * std_price + mean_price, 2)
+                        for p in predictions
+                    ]
+                else:
+                    logger.warning(
+                        "Invalid response from LSTM endpoint: expected %d prices, got %d",
+                        self.PREDICTION_STEPS,
+                        len(prices),
+                    )
+                    return None
 
             # Generate 7 future trading dates (weekdays only)
             dates = self._generate_trading_dates(self.PREDICTION_STEPS)
 
             return {
                 "dates": dates,
-                "prices": [round(p, 2) for p in prices],
+                "prices": [round(float(p), 2) for p in prices],
             }
 
+        except (ClientError, EndpointConnectionError) as e:
+            logger.warning(
+                "SageMaker LSTM endpoint unavailable: %s", str(e)
+            )
+            return None
+        except (ReadTimeoutError, ConnectTimeoutError) as e:
+            logger.warning(
+                "SageMaker LSTM endpoint timeout: %s", str(e)
+            )
+            return None
+        except (ConnectionError, OSError) as e:
+            logger.warning(
+                "SageMaker LSTM connection error: %s", str(e)
+            )
+            return None
         except Exception as e:
-            logger.error("LSTM prediction failed: %s", e)
+            logger.warning(
+                "Unexpected error invoking LSTM endpoint: %s", str(e)
+            )
             return None
 
     def _generate_trading_dates(self, count: int) -> List[str]:
@@ -124,7 +171,6 @@ class LSTMModel:
         current = date.today() + timedelta(days=1)
 
         while len(trading_dates) < count:
-            # weekday(): Monday=0 ... Friday=4, Saturday=5, Sunday=6
             if current.weekday() < 5:
                 trading_dates.append(current.strftime("%Y-%m-%d"))
             current += timedelta(days=1)

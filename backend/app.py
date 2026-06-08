@@ -79,11 +79,15 @@ app = FastAPI(
 # CORS: allow frontend at localhost:3000
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Lambda handler via Mangum (used when deployed to AWS Lambda)
+from mangum import Mangum
+handler = Mangum(app)
 
 
 # ---------------------------------------------------------------------------

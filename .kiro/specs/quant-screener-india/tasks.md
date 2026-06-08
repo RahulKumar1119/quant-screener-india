@@ -365,6 +365,72 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - [x] 21. Final checkpoint - All features complete
   - Ensure all tests pass, ask the user if questions arise.
 
+- [ ] 22. ML Model Training Pipeline
+  - [ ] 22.1 Create `backend/training/requirements.txt` with training dependencies
+    - Include: scikit-learn, tensorflow, torch, xgboost, jugaad-data, pandas, numpy, matplotlib, argparse
+    - _Requirements: 14.8_
+
+  - [ ] 22.2 Implement `backend/training/data_fetcher.py` shared data fetching utilities
+    - Create `TrainingDataFetcher` class reusing NSE session management from `nse_client.py`
+    - Implement `fetch_nifty500_financials(quarters=8)` returning DataFrame of quarterly financials for all Nifty 500 stocks
+    - Implement `fetch_historical_ohlc(tickers, days=365)` returning dict of ticker → OHLC DataFrame
+    - Implement `fetch_rbi_repo_history(years=5)` returning DataFrame of RBI REPO rate history
+    - Implement `fetch_sector_index_history(days=365)` returning dict of sector → historical DataFrame
+    - Handle NSE unreachability with descriptive error and sys.exit(1)
+    - _Requirements: 14.1, 14.14_
+
+  - [ ] 22.3 Implement `backend/training/feature_engineering.py` shared feature engineering
+    - Implement `engineer_xgboost_features(financials_df)` computing revenue growth (QoQ, YoY), profit margins, expense ratios, profit consistency
+    - Implement `generate_xgboost_labels(financials_df, price_df)` using 90-day forward price performance (SELL < -10%, HOLD -10% to +5%, BUY +5% to +20%, STRONG BUY > +20%)
+    - Implement `create_lstm_sequences(ohlc_df, window=30)` producing sliding window input/output arrays with MinMaxScaler
+    - Implement `engineer_tft_features(repo_df, sector_dfs)` computing rate change velocity, sector momentum, cross-correlations
+    - _Requirements: 14.11, 14.12, 14.13_
+
+  - [ ] 22.4 Implement `backend/training/train_xgboost.py`
+    - Accept CLI args: --n-estimators (200), --max-depth (6), --learning-rate (0.1), --output-dir
+    - Fetch Nifty 500 quarterly financials via `TrainingDataFetcher`
+    - Engineer features and generate labels via `feature_engineering.py`
+    - Split 80/20 train/validation
+    - Train XGBoost multi-class classifier (objective: multi:softprob, num_class: 4)
+    - Log training progress (loss per round) to stdout
+    - Save model as `model.json` and metrics as `metrics.json` (accuracy, F1 per class, confusion matrix)
+    - _Requirements: 14.2, 14.5, 14.6, 14.7, 14.10, 14.11_
+
+  - [ ] 22.5 Implement `backend/training/train_lstm.py`
+    - Accept CLI args: --epochs (50), --batch-size (32), --tickers (comma-separated, default top 50), --output-dir
+    - Fetch 1 year historical OHLC via `TrainingDataFetcher`
+    - Create sliding window sequences (30-day input → 1-day output) via `feature_engineering.py`
+    - Build Keras Sequential model: LSTM(64) → Dropout(0.2) → LSTM(32) → Dropout(0.2) → Dense(1)
+    - Train with early stopping (patience=10) and learning rate reduction on plateau
+    - Chronological 80/20 train/validation split (no shuffling)
+    - Log epoch progress (loss, MAE) to stdout
+    - Save as Keras SavedModel and metrics as `metrics.json` (MSE, MAE, MAPE)
+    - _Requirements: 14.3, 14.5, 14.6, 14.7, 14.10, 14.12_
+
+  - [ ] 22.6 Implement `backend/training/train_tft.py`
+    - Accept CLI args: --epochs (100), --batch-size (16), --learning-rate (0.001), --output-dir
+    - Fetch RBI REPO history and sector index history via `TrainingDataFetcher`
+    - Engineer temporal features (rate velocity, sector momentum) via `feature_engineering.py`
+    - Build PyTorch TFTMacroModel: LSTM encoder → MultiheadAttention → FC layers → Sigmoid
+    - Train with AdamW optimizer, MSE loss, early stopping (patience=15)
+    - 80/20 chronological train/validation split
+    - Log epoch progress (loss, R²) to stdout
+    - Save as `model.pt` (state_dict) and metrics as `metrics.json` (MSE, MAE, R²)
+    - _Requirements: 14.4, 14.5, 14.6, 14.7, 14.10, 14.13_
+
+  - [ ] 22.7 Implement `backend/training/train_all.py` orchestrator
+    - Run train_xgboost.py, train_lstm.py, train_tft.py sequentially with default parameters
+    - Report overall training summary (total time, per-model status)
+    - Exit with non-zero code if any training script fails
+    - _Requirements: 14.9_
+
+  - [ ] 22.8 Create `backend/training/README.md` with training documentation
+    - Document prerequisites (Python 3.10+, pip install -r requirements.txt)
+    - Document CLI usage for each training script with all arguments
+    - Document expected output files and their locations
+    - Document expected training time estimates
+    - _Requirements: 14.1_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for faster MVP
@@ -391,7 +457,11 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     { "id": 7, "tasks": ["15.2", "15.3", "15.4", "15.5", "15.7", "15.8", "15.10", "16.2", "16.3", "16.4"] },
     { "id": 8, "tasks": ["15.6", "15.9", "15.11", "16.5", "16.6"] },
     { "id": 9, "tasks": ["17.1"] },
-    { "id": 10, "tasks": ["19.1", "20.1"] }
+    { "id": 10, "tasks": ["19.1", "20.1"] },
+    { "id": 11, "tasks": ["22.1", "22.2"] },
+    { "id": 12, "tasks": ["22.3"] },
+    { "id": 13, "tasks": ["22.4", "22.5", "22.6"] },
+    { "id": 14, "tasks": ["22.7", "22.8"] }
   ]
 }
 ```

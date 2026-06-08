@@ -217,3 +217,26 @@ An AI-powered Financial Stock Screening and Analytics Platform focused on the In
 2. THE Platform SHALL organize components into discrete, reusable modules within src/components/.
 3. THE Platform SHALL contain complete implementations with no placeholder text, TODO comments, or partial code blocks.
 4. THE Platform SHALL type all component props, API responses, and state using TypeScript interfaces or types.
+
+---
+
+### Requirement 14: ML Model Training Pipeline
+
+**User Story:** As a developer, I want automated training scripts that fetch real NSE data and train all three ML models locally, so that I can produce production-ready model artifacts without manual data preparation.
+
+#### Acceptance Criteria
+
+1. THE Platform SHALL provide a `backend/training/` directory containing training scripts for XGBoost, LSTM, and TFT models.
+2. THE XGBoost training script SHALL fetch quarterly financial data for Nifty 500 stocks from NSE India via jugaad-data and train a multi-class classifier producing a model artifact saved as `backend/model_artifacts/xgboost_rating/model.json`.
+3. THE LSTM training script SHALL fetch 1 year of historical OHLC data for a configurable list of tickers from NSE India via jugaad-data and train a sequence-to-sequence model producing a Keras SavedModel artifact saved in `backend/model_artifacts/lstm_price/`.
+4. THE TFT training script SHALL fetch RBI REPO rate history and Nifty sector index historical values from NSE India via jugaad-data and train a PyTorch model producing a model artifact saved as `backend/model_artifacts/tft_macro/model.pt`.
+5. EACH training script SHALL accept command-line arguments for hyperparameters (epochs, learning rate, batch size) with sensible defaults.
+6. EACH training script SHALL log training progress (loss, accuracy/metrics per epoch) to stdout.
+7. EACH training script SHALL save training metrics (final loss, validation metrics, training duration) to a JSON file alongside the model artifact.
+8. THE Platform SHALL provide a `backend/training/requirements.txt` with training-specific dependencies (scikit-learn, tensorflow, torch, xgboost, jugaad-data, pandas, numpy, matplotlib).
+9. THE Platform SHALL provide a `backend/training/train_all.py` orchestrator script that runs all three training scripts sequentially with default parameters.
+10. EACH training script SHALL implement train/validation split (80/20) and report validation metrics.
+11. THE XGBoost training script SHALL engineer features including revenue growth rate, profit margin trends, expense ratios, and quarter-over-quarter changes from raw financial data.
+12. THE LSTM training script SHALL use MinMaxScaler normalization and create sliding window sequences of 30 trading days as input with the next day's close price as the target.
+13. THE TFT training script SHALL engineer temporal features from historical REPO rate changes and sector index momentum indicators.
+14. IF NSE India APIs are unreachable during training, THEN the training script SHALL exit with a descriptive error message and non-zero exit code.

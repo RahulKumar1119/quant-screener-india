@@ -1,0 +1,188 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  SageMaker Serverless Inference Endpoints for Quant Screener India ML models.
+  Deploys XGBoost, LSTM, and TFT models as serverless endpoints with auto-scaling.
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: S3 bucket containing model artifacts (model.tar.gz files)
+    Default: quant-screener-india-models
+
+  XGBoostModelDataUrl:
+    Type: String
+    Description: S3 URI to the XGBoost model artifact (model.tar.gz)
+    Default: s3://quant-screener-india-models/xgboost/model.tar.gz
+
+  LSTMModelDataUrl:
+    Type: String
+    Description: S3 URI to the LSTM model artifact (model.tar.gz)
+    Default: s3://quant-screener-india-models/lstm/model.tar.gz
+
+  TFTModelDataUrl:
+    Type: String
+    Description: S3 URI to the TFT model artifact (model.tar.gz)
+    Default: s3://quant-screener-india-models/tft/model.tar.gz
+
+  XGBoostImageUri:
+    Type: String
+    Description: ECR URI for the XGBoost inference container
+    Default: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:1.7-1
+
+  LSTMImageUri:
+    Type: String
+    Description: ECR URI for the TensorFlow inference container (LSTM)
+    Default: 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-inference:2.12-cpu
+
+  TFTImageUri:
+    Type: String
+    Description: ECR URI for the PyTorch inference container (TFT)
+    Default: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+
+Resources:
+  # --------------------------------------------------------------------------
+  # IAM Role for SageMaker
+  # --------------------------------------------------------------------------
+  SageMakerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: quant-screener-sagemaker-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+        - PolicyName: CloudWatchLogsPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "arn:aws:logs:*:*:*"
+
+  # --------------------------------------------------------------------------
+  # XGBoost Model + Endpoint Config + Endpoint
+  # --------------------------------------------------------------------------
+  XGBoostModel:
+    Type: AWS::SageMaker::Model
+    Properties:
+      ModelName: quant-screener-xgboost-model
+      ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
+      PrimaryContainer:
+        Image: !Ref XGBoostImageUri
+        ModelDataUrl: !Ref XGBoostModelDataUrl
+        Mode: SingleModel
+
+  XGBoostEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      EndpointConfigName: quant-screener-xgboost-config
+      ProductionVariants:
+        - ModelName: !GetAtt XGBoostModel.ModelName
+          VariantName: AllTraffic
+          ServerlessConfig:
+            MaxConcurrency: 5
+            MemorySizeInMB: 2048
+
+  XGBoostEndpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: quant-screener-xgboost
+      EndpointConfigName: !GetAtt XGBoostEndpointConfig.EndpointConfigName
+    DependsOn: XGBoostEndpointConfig
+
+  # --------------------------------------------------------------------------
+  # LSTM Model + Endpoint Config + Endpoint
+  # --------------------------------------------------------------------------
+  LSTMModel:
+    Type: AWS::SageMaker::Model
+    Properties:
+      ModelName: quant-screener-lstm-model
+      ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
+      PrimaryContainer:
+        Image: !Ref LSTMImageUri
+        ModelDataUrl: !Ref LSTMModelDataUrl
+        Mode: SingleModel
+
+  LSTMEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      EndpointConfigName: quant-screener-lstm-config
+      ProductionVariants:
+        - ModelName: !GetAtt LSTMModel.ModelName
+          VariantName: AllTraffic
+          ServerlessConfig:
+            MaxConcurrency: 5
+            MemorySizeInMB: 2048
+
+  LSTMEndpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: quant-screener-lstm
+      EndpointConfigName: !GetAtt LSTMEndpointConfig.EndpointConfigName
+    DependsOn: LSTMEndpointConfig
+
+  # --------------------------------------------------------------------------
+  # TFT Model + Endpoint Config + Endpoint
+  # --------------------------------------------------------------------------
+  TFTModel:
+    Type: AWS::SageMaker::Model
+    Properties:
+      ModelName: quant-screener-tft-model
+      ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
+      PrimaryContainer:
+        Image: !Ref TFTImageUri
+        ModelDataUrl: !Ref TFTModelDataUrl
+        Mode: SingleModel
+
+  TFTEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      EndpointConfigName: quant-screener-tft-config
+      ProductionVariants:
+        - ModelName: !GetAtt TFTModel.ModelName
+          VariantName: AllTraffic
+          ServerlessConfig:
+            MaxConcurrency: 5
+            MemorySizeInMB: 2048
+
+  TFTEndpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: quant-screener-tft
+      EndpointConfigName: !GetAtt TFTEndpointConfig.EndpointConfigName
+    DependsOn: TFTEndpointConfig
+
+Outputs:
+  XGBoostEndpointName:
+    Description: XGBoost SageMaker Serverless Endpoint name
+    Value: !GetAtt XGBoostEndpoint.EndpointName
+    Export:
+      Name: quant-screener-xgboost-endpoint
+
+  LSTMEndpointName:
+    Description: LSTM SageMaker Serverless Endpoint name
+    Value: !GetAtt LSTMEndpoint.EndpointName
+    Export:
+      Name: quant-screener-lstm-endpoint
+
+  TFTEndpointName:
+    Description: TFT SageMaker Serverless Endpoint name
+    Value: !GetAtt TFTEndpoint.EndpointName
+    Export:
+      Name: quant-screener-tft-endpoint
+
+  SageMakerRoleArn:
+    Description: SageMaker execution role ARN
+    Value: !GetAtt SageMakerExecutionRole.Arn
+    Export:
+      Name: quant-screener-sagemaker-role-arn

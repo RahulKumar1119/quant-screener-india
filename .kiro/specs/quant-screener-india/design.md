@@ -1358,3 +1358,241 @@ For any valid quarterly financial input data (non-empty array of financial recor
 For any cache entry with a configured TTL, a lookup performed after the TTL has elapsed must not return the previously cached value — it must either trigger a fresh fetch or return a cache miss.
 
 **Validates: Requirements 9.6**
+
+---
+
+## ML Model Training Pipeline
+
+### Overview
+
+The training pipeline fetches real historical data from NSE India via `jugaad-data` and trains three ML models locally. Training scripts live in `backend/training/` and produce model artifacts consumed by the inference wrappers in `backend/ml_models/`.
+
+### Training Architecture
+
+```
+backend/training/
+├── train_all.py              # Orchestrator: runs all training scripts
+├── train_xgboost.py          # XGBoost rating classifier
+├── train_lstm.py             # LSTM price projection model
+├── train_tft.py              # TFT macro resilience scorer
+├── data_fetcher.py           # Shared NSE data fetching utilities
+├── feature_engineering.py    # Shared feature engineering functions
+├── requirements.txt          # Training-specific Python dependencies
+└── README.md                 # Training instructions and documentation
+```
+
+### Data Flow
+
+```
+NSE India APIs (via jugaad-data)
+    │
+    ├── Quarterly Financials (Nifty 500) → XGBoost Training
+    │       ↓
+    │   Feature Engineering (revenue growth, margins, trends)
+    │       ↓
+    │   XGBoost Multi-class Classifier (4 classes: SELL/HOLD/BUY/STRONG BUY)
+    │       ↓
+    │   → backend/model_artifacts/xgboost_rating/model.json
+    │
+    ├── Historical OHLC (1 year, configurable tickers) → LSTM Training
+    │       ↓
+    │   MinMaxScaler + Sliding Window (30-day sequences)
+    │       ↓
+    │   LSTM Sequence Model (predict next-day close)
+    │       ↓
+    │   → backend/model_artifacts/lstm_price/ (SavedModel)
+    │
+    └── RBI REPO Rate + Sector Indices (historical) → TFT Training
+            ↓
+        Temporal Feature Engineering (rate changes, momentum)
+            ↓
+        TFT Regression Model (output: resilience score 0-1)
+            ↓
+        → backend/model_artifacts/tft_macro/model.pt
+```
+
+### XGBoost Training Details
+
+**Data Source**: Quarterly financial results for Nifty 500 stocks fetched from NSE corporate info endpoints.
+
+**Feature Engineering** (`feature_engineering.py`):
+- Revenue growth rate (QoQ and YoY)
+- Net profit margin and operating profit margin
+- Expense ratio (expenses / revenue)
+- Quarter-over-quarter profit consistency (standard deviation)
+- ROE and ROCE computed from available financials
+- Dividend yield trends
+
+**Label Generation**:
+- Labels derived from forward-looking 90-day price performance after each quarterly result:
+  - SELL: price declined > 10%
+  - HOLD: price change between -10% and +5%
+  - BUY: price increased 5-20%
+  - STRONG BUY: price increased > 20%
+
+**Model Configuration**:
+```python
+xgb_params = {
+    "objective": "multi:softprob",
+    "num_class": 4,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "n_estimators": 200,
+    "eval_metric": "mlogloss",
+    "early_stopping_rounds": 20,
+}
+```
+
+**Output**: `model.json` (XGBoost Booster serialized) + `metrics.json` (accuracy, F1-score per class, confusion matrix).
+
+### LSTM Training Details
+
+**Data Source**: 1 year of daily OHLC data for a configurable set of tickers (default: top 50 Nifty stocks by market cap).
+
+**Preprocessing**:
+- MinMaxScaler normalization per ticker (fit on training set only)
+- Sliding window: 30 trading days input → 1 day output (next close)
+- Train/validation split: 80/20 chronological (no shuffle for time series)
+
+**Model Architecture**:
+```python
+model = keras.Sequential([
+    keras.layers.LSTM(64, input_shape=(30, 1), return_sequences=True),
+    keras.layers.Dropout(0.2),
+    keras.layers.LSTM(32),
+    keras.layers.Dropout(0.2),
+    keras.layers.Dense(1),
+])
+model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+```
+
+**Training Config**:
+- Epochs: 50 (default, configurable via CLI)
+- Batch size: 32
+- Early stopping on validation loss (patience=10)
+- Learning rate reduction on plateau (factor=0.5, patience=5)
+
+**Output**: Keras SavedModel directory + `metrics.json` (MSE, MAE, MAPE on validation set).
+
+### TFT Training Details
+
+**Data Source**: 
+- RBI REPO rate history (via jugaad-data RBI module)
+- Nifty sector index historical values (BANK, IT, PHARMA, AUTO, FMCG) via NSE API
+
+**Feature Engineering**:
+- REPO rate change velocity (rate of change over 30/60/90 day windows)
+- Sector index momentum (percentage change over 7/14/30 day windows)
+- Cross-sector correlation features
+- Normalized sector index ratios (relative to Nifty 50 benchmark)
+
+**Label Generation**:
+- Target: market-wide resilience score (0-1) derived from Nifty 50 forward 30-day performance relative to sector dispersion
+
+**Model Architecture**:
+```python
+class TFTMacroModel(nn.Module):
+    def __init__(self, input_dim=11, hidden_dim=64, num_heads=4):
+        super().__init__()
+        self.encoder = nn.LSTM(input_dim, hidden_dim, batch_first=True)
+        self.attention = nn.MultiheadAttention(hidden_dim, num_heads)
+        self.fc = nn.Sequential(
+            nn.Linear(hidden_dim, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid(),
+        )
+    
+    def forward(self, x):
+        lstm_out, _ = self.encoder(x)
+        attn_out, _ = self.attention(lstm_out, lstm_out, lstm_out)
+        return self.fc(attn_out[:, -1, :])
+```
+
+**Training Config**:
+- Epochs: 100 (default, configurable via CLI)
+- Batch size: 16
+- Optimizer: AdamW (lr=0.001, weight_decay=0.01)
+- Loss: MSE
+- Early stopping on validation loss (patience=15)
+
+**Output**: `model.pt` (PyTorch state_dict) + `metrics.json` (MSE, MAE, R² on validation set).
+
+### Shared Data Fetcher
+
+```python
+# backend/training/data_fetcher.py
+
+class TrainingDataFetcher:
+    """Fetches and caches training data from NSE India."""
+
+    def fetch_nifty500_financials(self, quarters: int = 8) -> pd.DataFrame:
+        """Fetch last N quarters of financials for all Nifty 500 stocks."""
+        ...
+
+    def fetch_historical_ohlc(self, tickers: list[str], days: int = 365) -> dict[str, pd.DataFrame]:
+        """Fetch 1 year of OHLC data for given tickers."""
+        ...
+
+    def fetch_rbi_repo_history(self, years: int = 5) -> pd.DataFrame:
+        """Fetch RBI REPO rate history."""
+        ...
+
+    def fetch_sector_index_history(self, days: int = 365) -> dict[str, pd.DataFrame]:
+        """Fetch historical values for Nifty sector indices."""
+        ...
+```
+
+### Training CLI Interface
+
+Each training script accepts CLI arguments:
+
+```bash
+# Train XGBoost
+python backend/training/train_xgboost.py \
+    --n-estimators 200 \
+    --max-depth 6 \
+    --learning-rate 0.1 \
+    --output-dir backend/model_artifacts/xgboost_rating/
+
+# Train LSTM
+python backend/training/train_lstm.py \
+    --epochs 50 \
+    --batch-size 32 \
+    --tickers "RELIANCE,TCS,INFY,HDFCBANK,ICICIBANK" \
+    --output-dir backend/model_artifacts/lstm_price/
+
+# Train TFT
+python backend/training/train_tft.py \
+    --epochs 100 \
+    --batch-size 16 \
+    --learning-rate 0.001 \
+    --output-dir backend/model_artifacts/tft_macro/
+
+# Train all models with defaults
+python backend/training/train_all.py
+```
+
+### Training Metrics Output
+
+Each training script produces a `metrics.json` alongside the model artifact:
+
+```json
+{
+  "model": "xgboost_rating",
+  "trained_at": "2026-06-08T14:30:00Z",
+  "training_duration_seconds": 145,
+  "data_source": "NSE India (Nifty 500 quarterly financials)",
+  "samples": { "train": 3200, "validation": 800 },
+  "metrics": {
+    "accuracy": 0.72,
+    "f1_macro": 0.68,
+    "per_class_f1": { "SELL": 0.65, "HOLD": 0.70, "BUY": 0.71, "STRONG BUY": 0.66 }
+  },
+  "hyperparameters": {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "learning_rate": 0.1
+  }
+}
+```
