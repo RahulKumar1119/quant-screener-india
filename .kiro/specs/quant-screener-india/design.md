@@ -138,9 +138,12 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │   │   ├── tft_model.py              (TFT inference wrapper)
 │   │   └── gemma_model.py            (Gemma 3 4B IT via AWS Bedrock)
 │   ├── model_artifacts/
-│   │   ├── xgboost_rating.json       (Pre-trained XGBoost model)
-│   │   ├── lstm_price.h5             (Pre-trained LSTM weights)
-│   │   └── tft_macro.pt              (Pre-trained TFT weights)
+│   │   ├── xgboost_rating/           (XGBoost model directory)
+│   │   │   └── model.json            (Trained XGBoost Booster)
+│   │   ├── lstm_price/               (LSTM model directory)
+│   │   │   └── (Keras SavedModel)    (Trained LSTM weights)
+│   │   └── tft_macro/                (TFT model directory)
+│   │       └── model.pt              (Trained TFT state_dict)
 │   ├── schemas.py                    (Pydantic response models)
 │   └── requirements.txt              (Python dependencies)
 ├── rsbuild.config.ts
@@ -332,9 +335,9 @@ from ml_models import XGBoostModel, LSTMModel, TFTModel, GemmaModel
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load models at startup
-    app.state.xgboost = XGBoostModel("model_artifacts/xgboost_rating.json")
-    app.state.lstm = LSTMModel("model_artifacts/lstm_price.h5")
-    app.state.tft = TFTModel("model_artifacts/tft_macro.pt")
+    app.state.xgboost = XGBoostModel("model_artifacts/xgboost_rating/model.json")
+    app.state.lstm = LSTMModel("model_artifacts/lstm_price/")
+    app.state.tft = TFTModel("model_artifacts/tft_macro/model.pt")
     app.state.gemma = GemmaModel()  # Connects to AWS Bedrock
     app.state.nse_client = NSEClient()
     app.state.cache = CacheManager()

@@ -185,10 +185,10 @@ npm run build
 Upload model artifacts to S3, then deploy the SageMaker stack:
 
 ```bash
-# Upload model artifacts
-aws s3 cp model_artifacts/xgboost_rating.json s3://quant-screener-india-models/xgboost/model.tar.gz
-aws s3 cp model_artifacts/lstm_price.h5 s3://quant-screener-india-models/lstm/model.tar.gz
-aws s3 cp model_artifacts/tft_macro.pt s3://quant-screener-india-models/tft/model.tar.gz
+# Package and upload model artifacts (produced by training scripts)
+cd backend/model_artifacts/xgboost_rating && tar -czf model.tar.gz model.json && aws s3 cp model.tar.gz s3://quant-screener-india-models/xgboost/model.tar.gz
+cd backend/model_artifacts/lstm_price && tar -czf model.tar.gz * && aws s3 cp model.tar.gz s3://quant-screener-india-models/lstm/model.tar.gz
+cd backend/model_artifacts/tft_macro && tar -czf model.tar.gz model.pt && aws s3 cp model.tar.gz s3://quant-screener-india-models/tft/model.tar.gz
 
 # Deploy SageMaker endpoints (serverless, scales to zero when idle)
 aws cloudformation deploy \

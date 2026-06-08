@@ -18,7 +18,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
   - [x] 1.2 Initialize backend project with FastAPI, jugaad-data, and ML dependencies
     - Create `backend/requirements.txt` with: fastapi, uvicorn, jugaad-data, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic, boto3
     - Create `backend/` directory structure: `app.py`, `nse_client.py`, `cache.py`, `rate_limiter.py`, `schemas.py`, `ml_models/__init__.py`
-    - Create `backend/model_artifacts/` directory with placeholder `.gitkeep` files for model weights
+    - Create `backend/model_artifacts/` directory structure with subdirectories (xgboost_rating/, lstm_price/, tft_macro/) and `.gitkeep` files
     - _Requirements: 9.10, 9.18_
 
 - [x] 2. Backend: NSE data client and session management
@@ -438,7 +438,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - Checkpoints ensure incremental validation
 - Property tests validate universal correctness properties from the design document (13 properties total)
 - The backend uses NO mock data — all data comes from live NSE India APIs via jugaad-data
-- ML model artifacts must be pre-trained and placed in `backend/model_artifacts/` before running
+- ML model artifacts are produced by training scripts in `backend/training/` and saved to `backend/model_artifacts/{model_name}/`
 - Gemma 3 4B IT runs via AWS Bedrock (requires AWS credentials with Bedrock access)
 - Frontend handles nullable ML fields gracefully — partial responses show available data with "unavailable" placeholders
 
