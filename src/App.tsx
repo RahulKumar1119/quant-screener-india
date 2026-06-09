@@ -9,7 +9,7 @@ function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <div className="min-h-screen bg-[rgb(var(--color-surface))] text-gray-900 dark:text-gray-100">
+        <div className="min-h-screen bg-black text-gray-100">
           <NavigationHeader />
           <Routes>
             <Route path="/" element={<HomePage />} />

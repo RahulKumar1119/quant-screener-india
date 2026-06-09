@@ -249,17 +249,17 @@ export function HomePage() {
           <div className="particle absolute top-[50%] right-[10%] w-4 h-4 rounded-full bg-emerald-500/20" />
           <div className="particle absolute top-[70%] left-[15%] w-3 h-3 rounded-full bg-amber-500/20" />
           {/* Large gradient orbs */}
-          <div className="parallax-fast absolute top-0 left-[15%] w-[500px] h-[500px] bg-indigo-600/10 dark:bg-indigo-600/5 rounded-full blur-[120px]" />
-          <div className="parallax-slow absolute bottom-0 right-[10%] w-[400px] h-[400px] bg-violet-600/10 dark:bg-violet-600/5 rounded-full blur-[100px]" />
+          <div className="parallax-fast absolute top-0 left-[15%] w-[500px] h-[500px] bg-indigo-600/8 rounded-full blur-[120px]" />
+          <div className="parallax-slow absolute bottom-0 right-[10%] w-[400px] h-[400px] bg-violet-600/8 rounded-full blur-[100px]" />
         </div>
 
         <div className="hero-content relative max-w-6xl mx-auto px-4 text-center" style={{ transformStyle: "preserve-3d" }}>
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] mb-8 tracking-tight">
-            <span className="hero-word inline-block text-gray-900 dark:text-white">AI-Powered</span>{" "}
+            <span className="hero-word inline-block text-white">AI-Powered</span>{" "}
             <span className="hero-word inline-block bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-600 dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400 bg-clip-text text-transparent">Stock</span>{" "}
             <span className="hero-word inline-block bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 bg-clip-text text-transparent">Analytics</span>
             <br />
-            <span className="hero-word inline-block text-3xl md:text-5xl lg:text-6xl font-bold text-gray-500 dark:text-gray-400 mt-2">
+            <span className="hero-word inline-block text-3xl md:text-5xl lg:text-6xl font-bold text-gray-400 mt-2">
               for Indian Markets
             </span>
           </h1>
@@ -267,7 +267,7 @@ export function HomePage() {
           {/* Decorative animated line */}
           <div className="hero-line-decoration h-1 w-32 mx-auto bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full mb-8" />
 
-          <p className="hero-subtitle text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+          <p className="hero-subtitle text-lg md:text-xl lg:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
             Real-time NSE data × XGBoost × LSTM × TFT × Gemma AI — 
             ratings, projections, resilience scores from live market feeds.
           </p>
@@ -287,7 +287,7 @@ export function HomePage() {
             </button>
             <button
               onClick={() => navigate("/screener")}
-              className="hero-btn px-10 py-5 glass font-bold text-lg rounded-2xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-gray-800 dark:text-gray-200"
+              className="hero-btn px-10 py-5 glass font-bold text-lg rounded-2xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-gray-200"
             >
               Custom Screener
             </button>
@@ -296,14 +296,14 @@ export function HomePage() {
       </section>
 
       {/* ════════ INFINITE TICKER BAR ════════ */}
-      <section className="border-y border-gray-200/30 dark:border-gray-700/20 bg-white/40 dark:bg-slate-900/40 backdrop-blur-lg py-4 overflow-hidden">
+      <section className="border-y border-white/5 bg-black/60 backdrop-blur-lg py-4 overflow-hidden">
         <div className="ticker-inner flex gap-12 whitespace-nowrap w-max">
           {/* Duplicate for seamless loop */}
           {[...MARKET_INDICES, ...MARKET_INDICES].map((idx, i) => (
             <div key={`${idx.name}-${i}`} className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{idx.name}</span>
-              <span className="text-sm font-black text-gray-900 dark:text-gray-100 tabular-nums">{idx.value}</span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${idx.positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400"}`}>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{idx.name}</span>
+              <span className="text-sm font-black text-gray-100 tabular-nums">{idx.value}</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${idx.positive ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"}`}>
                 {idx.change}
               </span>
             </div>
@@ -320,7 +320,7 @@ export function HomePage() {
                 <span className="counter-value" data-target={stat.end}>0</span>
                 <span>{stat.suffix}</span>
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-semibold uppercase tracking-wider">
+              <div className="text-sm text-gray-400 mt-2 font-semibold uppercase tracking-wider">
                 {stat.label}
               </div>
             </div>
@@ -331,8 +331,8 @@ export function HomePage() {
       {/* ════════ HORIZONTAL SCROLL STOCKS (Pinned) ════════ */}
       <section className="hscroll-section relative">
         <div className="absolute top-8 left-8 z-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Trending Stocks</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Scroll horizontally →</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-100">Trending Stocks</h2>
+          <p className="text-gray-400 mt-1">Scroll horizontally →</p>
         </div>
         <div className="hscroll-container flex items-center gap-8 px-8 pt-24 pb-8 min-h-screen">
           {trendingStocks.map((stock) => (
@@ -343,35 +343,35 @@ export function HomePage() {
               style={{ transformStyle: "preserve-3d" }}
             >
               <div className="flex items-center justify-between mb-4">
-                <span className="text-2xl font-black text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                <span className="text-2xl font-black text-gray-100 group-hover:text-indigo-400 transition-colors">
                   {stock.ticker}
                 </span>
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide ${
-                  stock.ai_rating === "STRONG BUY" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                    : stock.ai_rating === "BUY" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-                    : stock.ai_rating === "HOLD" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                  stock.ai_rating === "STRONG BUY" ? "bg-emerald-900/50 text-emerald-300"
+                    : stock.ai_rating === "BUY" ? "bg-green-900/50 text-green-300"
+                    : stock.ai_rating === "HOLD" ? "bg-amber-900/50 text-amber-300"
+                    : "bg-red-900/50 text-red-300"
                 }`}>
                   {stock.ai_rating}
                 </span>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{stock.company_name}</p>
+              <p className="text-sm text-gray-400 mb-6">{stock.company_name}</p>
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-gray-100/80 dark:bg-slate-700/30 rounded-xl px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">P/E Ratio</div>
-                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1">{stock.pe_ratio}</div>
+                <div className="bg-white/5 rounded-xl px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-widest text-gray-500">P/E Ratio</div>
+                  <div className="text-xl font-bold text-gray-200 mt-1">{stock.pe_ratio}</div>
                 </div>
-                <div className="bg-gray-100/80 dark:bg-slate-700/30 rounded-xl px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">ROE %</div>
-                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1">{stock.roe}%</div>
+                <div className="bg-white/5 rounded-xl px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-widest text-gray-500">ROE %</div>
+                  <div className="text-xl font-bold text-gray-200 mt-1">{stock.roe}%</div>
                 </div>
               </div>
               <div>
                 <div className="flex justify-between mb-1.5">
-                  <span className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-semibold">TFT Resilience</span>
+                  <span className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">TFT Resilience</span>
                   <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{stock.tft_score}/100</span>
                 </div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full"
                     style={{ width: `${stock.tft_score}%` }}
@@ -384,16 +384,16 @@ export function HomePage() {
       </section>
 
       {/* ════════ FEATURES ════════ */}
-      <section className="py-24 bg-gradient-to-b from-gray-50/50 to-white dark:from-slate-800/10 dark:to-transparent">
+      <section className="py-24 bg-gradient-to-b from-black/50 to-black">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="text-4xl md:text-5xl font-black text-gray-100 mb-4">
               Four ML Models.{" "}
               <span className="bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
                 One Platform.
               </span>
             </h2>
-            <p className="text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
+            <p className="text-lg text-gray-400 max-w-xl mx-auto">
               Real NSE data meets cutting-edge machine learning
             </p>
           </div>
@@ -401,8 +401,8 @@ export function HomePage() {
             {FEATURES.map((f) => (
               <div key={f.title} className="feature-card glass rounded-3xl p-8 hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group cursor-default" style={{ transformStyle: "preserve-3d" }}>
                 <div className="feat-icon text-5xl mb-5 inline-block group-hover:scale-125 transition-transform duration-500">{f.icon}</div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">{f.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{f.description}</p>
+                <h3 className="text-xl font-bold text-gray-100 mb-3 group-hover:text-indigo-400 transition-colors duration-300">{f.title}</h3>
+                <p className="text-gray-400 leading-relaxed">{f.description}</p>
               </div>
             ))}
           </div>
@@ -416,10 +416,10 @@ export function HomePage() {
           <div className="particle absolute -top-10 left-1/3 w-60 h-60 bg-indigo-500/10 rounded-full blur-[80px]" />
           <div className="particle absolute -bottom-10 right-1/3 w-60 h-60 bg-violet-500/10 rounded-full blur-[80px]" />
           <div className="relative">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-gray-100 mb-5">
+            <h2 className="text-4xl md:text-5xl font-black text-gray-100 mb-5">
               Start Analyzing
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto">
+            <p className="text-xl text-gray-400 mb-10 max-w-lg mx-auto">
               Search any NSE ticker for AI-powered insights
             </p>
             <button
@@ -438,9 +438,9 @@ export function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200/30 dark:border-gray-700/20 py-12">
+      <footer className="border-t border-white/5 py-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-gray-500 dark:text-gray-400 font-medium">
+          <p className="text-gray-400 font-medium">
             <span className="font-bold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">Quant Screener India</span>
             {" "}— AI-powered NSE stock analytics
           </p>
