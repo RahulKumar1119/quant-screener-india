@@ -1,11 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { TextPlugin } from "gsap/TextPlugin";
 import { SAMPLE_ALL_TICKERS } from "../mocks/sampleData";
 
-gsap.registerPlugin(ScrollTrigger, TextPlugin);
+gsap.registerPlugin(ScrollTrigger, TextPlugin, useGSAP);
 
 const MARKET_INDICES = [
   { name: "NIFTY 50", value: "22,147.00", change: "+0.82%", positive: true },
@@ -17,380 +18,309 @@ const MARKET_INDICES = [
 ];
 
 const FEATURES = [
-  {
-    icon: "📈",
-    title: "AI Price Projections",
-    description: "LSTM-powered 7-day price forecasts trained on real NSE historical data",
-  },
-  {
-    icon: "🧠",
-    title: "ML Stock Ratings",
-    description: "XGBoost classifier rates stocks STRONG BUY to SELL from quarterly financials",
-  },
-  {
-    icon: "🌐",
-    title: "Macro Resilience Score",
-    description: "TFT model scores 0-100 using RBI REPO rates and sector indices",
-  },
-  {
-    icon: "✨",
-    title: "AI Narrative Summary",
-    description: "Gemma 3 4B generates SEBI-style fundamental analysis summaries",
-  },
-  {
-    icon: "🔍",
-    title: "Custom Screener",
-    description: "Query Nifty 500 with text-based filters combining financials and AI ratings",
-  },
-  {
-    icon: "🇮🇳",
-    title: "Indian Market Native",
-    description: "₹ Crores formatting, NSE symbols, weekend-skipping charts, live NSE data",
-  },
+  { icon: "📈", title: "AI Price Projections", description: "LSTM-powered 7-day price forecasts from real NSE OHLC data" },
+  { icon: "🧠", title: "ML Stock Ratings", description: "XGBoost multi-class classifier: STRONG BUY → SELL" },
+  { icon: "🌐", title: "Macro Resilience", description: "TFT model with RBI REPO + sector indices → score 0-100" },
+  { icon: "✨", title: "AI Summaries", description: "Gemma 3 4B SEBI-style fundamental narrative generation" },
+  { icon: "🔍", title: "Custom Screener", description: "Text queries across Nifty 500: PE < 25 AND ROE > 15" },
+  { icon: "🇮🇳", title: "Indian Native", description: "₹ Crores, NSE symbols, weekend-skipping date axes" },
 ];
 
 const STATS = [
-  { value: "500+", label: "NSE Stocks Tracked" },
-  { value: "4", label: "ML Models" },
-  { value: "< 5min", label: "Data Freshness" },
-  { value: "7 Days", label: "Price Forecast" },
+  { end: 500, suffix: "+", label: "NSE Stocks" },
+  { end: 4, suffix: "", label: "ML Models" },
+  { end: 7, suffix: " Days", label: "Price Forecast" },
+  { end: 100, suffix: "", label: "TFT Score Range" },
 ];
 
 export function HomePage() {
   const navigate = useNavigate();
-  const containerRef = useRef<HTMLDivElement>(null);
-
+  const container = useRef<HTMLDivElement>(null);
   const trendingStocks = SAMPLE_ALL_TICKERS.tickers.slice(0, 8);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // ─── Hero: Split text letter-by-letter reveal ───
-      gsap.set(".hero-line", { perspective: 400 });
-      const heroTl = gsap.timeline();
+  useGSAP(
+    () => {
+      // ═══════════════════════════════════════════
+      // HERO: Cinematic entrance with 3D perspective
+      // ═══════════════════════════════════════════
+      const heroTl = gsap.timeline({ defaults: { ease: "power4.out" } });
+
+      // Perspective wrapper
+      gsap.set(".hero-content", { perspective: 800 });
 
       heroTl
-        .from(".hero-line-1 .char", {
+        // Title lines fly in from 3D space
+        .from(".hero-word", {
+          z: -200,
+          rotationX: 40,
           opacity: 0,
-          rotationX: -90,
-          y: 30,
-          duration: 0.8,
-          stagger: 0.03,
-          ease: "back.out(1.7)",
+          duration: 1.2,
+          stagger: { each: 0.08, from: "start" },
         })
-        .from(
-          ".hero-line-2 .char",
-          {
-            opacity: 0,
-            scale: 0,
-            rotation: gsap.utils.wrap([-15, 15]),
-            duration: 0.6,
-            stagger: 0.02,
-            ease: "elastic.out(1, 0.5)",
-          },
-          "-=0.3"
-        )
-        .from(
-          ".hero-line-3",
-          { opacity: 0, y: 20, duration: 0.6, ease: "power2.out" },
-          "-=0.2"
-        )
-        .from(
+        // Subtitle scrambles in (text replace effect)
+        .fromTo(
           ".hero-subtitle",
-          {
-            opacity: 0,
-            clipPath: "inset(0 100% 0 0)",
-            duration: 1,
-            ease: "power3.inOut",
-          },
-          "-=0.3"
-        )
-        .from(
-          ".hero-btn",
-          {
-            opacity: 0,
-            y: 20,
-            scale: 0.8,
-            duration: 0.5,
-            stagger: 0.15,
-            ease: "back.out(2)",
-          },
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.8 },
           "-=0.4"
-        );
+        )
+        // Buttons spring in
+        .from(".hero-btn", {
+          scale: 0,
+          opacity: 0,
+          duration: 0.6,
+          stagger: 0.2,
+          ease: "elastic.out(1, 0.5)",
+        }, "-=0.3")
+        // Decorative line draws in
+        .from(".hero-line-decoration", {
+          scaleX: 0,
+          duration: 0.8,
+          ease: "power2.inOut",
+        }, "-=0.5");
 
-      // ─── Floating orbs with random paths ───
-      document.querySelectorAll(".float-orb").forEach((orb, i) => {
-        gsap.to(orb, {
-          x: `random(-40, 40)`,
-          y: `random(-30, 30)`,
-          scale: `random(0.8, 1.2)`,
-          duration: gsap.utils.random(3, 6),
+      // Floating particles
+      gsap.utils.toArray<HTMLElement>(".particle").forEach((p, i) => {
+        gsap.to(p, {
+          y: `random(-50, 50)`,
+          x: `random(-30, 30)`,
+          rotation: `random(-15, 15)`,
+          duration: gsap.utils.random(3, 7),
           repeat: -1,
           yoyo: true,
           ease: "sine.inOut",
-          delay: i * 0.5,
+          delay: i * 0.3,
         });
       });
 
-      // ─── Ticker bar: Marquee-style slide ───
-      const tickerTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: ".ticker-section",
-          start: "top 90%",
-        },
-      });
-      tickerTl.from(".ticker-section", {
-        scaleY: 0,
-        transformOrigin: "top",
-        duration: 0.4,
-        ease: "power2.out",
-      });
-      tickerTl.from(
-        ".ticker-item",
-        {
-          x: 100,
-          opacity: 0,
-          rotation: 5,
-          duration: 0.5,
-          stagger: 0.08,
-          ease: "power3.out",
-        },
-        "-=0.2"
-      );
-
-      // ─── Stats counter animation ───
-      document.querySelectorAll(".stat-value").forEach((el) => {
-        gsap.from(el, {
-          textContent: "0",
-          duration: 2,
-          ease: "power1.out",
-          snap: { textContent: 1 },
-          scrollTrigger: {
-            trigger: el,
-            start: "top 85%",
-          },
+      // ═══════════════════════════════════════════
+      // TICKER BAR: Infinite marquee effect
+      // ═══════════════════════════════════════════
+      const tickerInner = document.querySelector(".ticker-inner");
+      if (tickerInner) {
+        gsap.to(".ticker-inner", {
+          xPercent: -50,
+          duration: 25,
+          ease: "none",
+          repeat: -1,
         });
+      }
+
+      // ═══════════════════════════════════════════
+      // STATS: Counter spin-up with scroll trigger
+      // ═══════════════════════════════════════════
+      gsap.utils.toArray<HTMLElement>(".counter-value").forEach((el) => {
+        const target = parseInt(el.dataset.target || "0", 10);
+        gsap.fromTo(
+          el,
+          { innerText: "0" },
+          {
+            innerText: target,
+            duration: 2,
+            ease: "power1.out",
+            snap: { innerText: 1 },
+            scrollTrigger: { trigger: el, start: "top 85%" },
+          }
+        );
       });
 
-      // Stats section reveal
-      gsap.from(".stat-item", {
-        y: 50,
+      gsap.from(".stat-card", {
+        y: 60,
         opacity: 0,
-        scale: 0.5,
-        duration: 0.7,
-        stagger: 0.12,
-        ease: "elastic.out(1, 0.75)",
-        scrollTrigger: {
-          trigger: ".stats-section",
-          start: "top 80%",
-        },
-      });
-
-      // ─── Trending stocks: 3D flip-in ───
-      gsap.from(".stock-card", {
-        rotationY: 90,
-        opacity: 0,
+        rotationX: 20,
         duration: 0.8,
-        stagger: {
-          each: 0.1,
-          from: "random",
-        },
+        stagger: 0.15,
         ease: "power3.out",
-        transformOrigin: "center center",
-        scrollTrigger: {
-          trigger: ".stocks-section",
-          start: "top 75%",
-        },
+        scrollTrigger: { trigger: ".stats-grid", start: "top 80%" },
       });
 
-      // Stock card progress bars animate width
-      gsap.from(".tft-bar-fill", {
-        width: 0,
-        duration: 1.2,
-        stagger: 0.1,
-        ease: "power2.out",
-        scrollTrigger: {
-          trigger: ".stocks-section",
-          start: "top 70%",
-        },
-      });
+      // ═══════════════════════════════════════════
+      // HORIZONTAL SCROLL PINNED SECTION (Showcase-style)
+      // ═══════════════════════════════════════════
+      const stockCards = gsap.utils.toArray<HTMLElement>(".hscroll-card");
+      if (stockCards.length > 0) {
+        const scrollSection = document.querySelector(".hscroll-section");
+        const scrollContainer = document.querySelector(".hscroll-container");
+        if (scrollSection && scrollContainer) {
+          gsap.to(scrollContainer, {
+            x: () => -(scrollContainer as HTMLElement).scrollWidth + window.innerWidth - 100,
+            ease: "none",
+            scrollTrigger: {
+              trigger: scrollSection,
+              start: "top top",
+              end: () => `+=${(scrollContainer as HTMLElement).scrollWidth}`,
+              pin: true,
+              scrub: 1,
+              invalidateOnRefresh: true,
+            },
+          });
 
-      // ─── Features: Morphing grid with stagger ───
+          // Cards scale up as they enter viewport
+          stockCards.forEach((card) => {
+            gsap.from(card, {
+              scale: 0.8,
+              opacity: 0.3,
+              rotationY: -15,
+              duration: 0.5,
+              scrollTrigger: {
+                trigger: card,
+                containerAnimation: gsap.getById("hscroll") as gsap.core.Tween | undefined,
+                start: "left 80%",
+                end: "left 50%",
+                scrub: true,
+              },
+            });
+          });
+        }
+      }
+
+      // ═══════════════════════════════════════════
+      // FEATURES: Stagger from random with rotation
+      // ═══════════════════════════════════════════
       gsap.from(".feature-card", {
-        y: 80,
-        opacity: 0,
-        rotationX: 15,
-        duration: 0.7,
-        stagger: {
-          amount: 0.6,
-          grid: [2, 3],
-          from: "center",
-        },
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".features-section",
-          start: "top 75%",
-        },
-      });
-
-      // Feature icons bounce on scroll
-      gsap.from(".feature-icon", {
-        scale: 0,
-        rotation: 360,
-        duration: 0.8,
-        stagger: 0.1,
-        ease: "elastic.out(1, 0.4)",
-        scrollTrigger: {
-          trigger: ".features-section",
-          start: "top 70%",
-        },
-      });
-
-      // ─── CTA: Parallax + reveal ───
-      gsap.from(".cta-card", {
         y: 100,
         opacity: 0,
-        scale: 0.9,
-        duration: 1,
+        rotationY: gsap.utils.wrap([-30, 30, -20, 20, -10, 10]),
+        duration: 0.9,
+        stagger: { each: 0.12, from: "random" },
         ease: "power3.out",
-        scrollTrigger: {
-          trigger: ".cta-section",
-          start: "top 80%",
-        },
+        scrollTrigger: { trigger: ".features-grid", start: "top 75%" },
       });
 
-      // CTA button pulse
-      gsap.to(".cta-btn", {
-        boxShadow: "0 0 30px rgba(99, 102, 241, 0.4)",
-        duration: 1.5,
+      // Feature icons: elastic bounce
+      gsap.from(".feat-icon", {
+        scale: 0,
+        rotation: gsap.utils.wrap([180, -180, 90, -90, 270, -270]),
+        duration: 1,
+        stagger: 0.1,
+        ease: "elastic.out(1.2, 0.4)",
+        scrollTrigger: { trigger: ".features-grid", start: "top 70%" },
+      });
+
+      // ═══════════════════════════════════════════
+      // CTA: Parallax + magnetic effect
+      // ═══════════════════════════════════════════
+      gsap.from(".cta-box", {
+        y: 80,
+        scale: 0.92,
+        opacity: 0,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: ".cta-section", start: "top 80%" },
+      });
+
+      // Pulsing CTA button
+      gsap.to(".cta-pulse", {
+        boxShadow: "0 0 40px 8px rgba(99, 102, 241, 0.35)",
+        scale: 1.02,
+        duration: 1.8,
         repeat: -1,
         yoyo: true,
         ease: "sine.inOut",
       });
 
-      // ─── Scroll-linked parallax on hero orbs ───
-      gsap.to(".orb-parallax-1", {
-        y: -150,
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "50% top",
-          scrub: 1,
-        },
+      // ═══════════════════════════════════════════
+      // SCROLL-LINKED PARALLAX (Hero background)
+      // ═══════════════════════════════════════════
+      gsap.to(".parallax-fast", {
+        y: -200,
+        scrollTrigger: { trigger: container.current, start: "top top", end: "40% top", scrub: 0.5 },
       });
-      gsap.to(".orb-parallax-2", {
+      gsap.to(".parallax-slow", {
         y: -80,
-        x: 50,
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "50% top",
-          scrub: 1.5,
-        },
+        scrollTrigger: { trigger: container.current, start: "top top", end: "40% top", scrub: 1.5 },
       });
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
-
-  // Split text into individual characters for animation
-  const splitChars = (text: string, className: string) => (
-    <span className={`hero-line ${className} inline-block`}>
-      {text.split("").map((char, i) => (
-        <span key={i} className="char inline-block" style={{ whiteSpace: char === " " ? "pre" : undefined }}>
-          {char}
-        </span>
-      ))}
-    </span>
+    },
+    { scope: container }
   );
 
   return (
-    <div ref={containerRef} className="min-h-screen overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative py-20 md:py-32 lg:py-40">
-        {/* Animated gradient orbs with parallax */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="float-orb orb-parallax-1 absolute top-10 left-[15%] w-80 h-80 bg-indigo-500/20 dark:bg-indigo-500/10 rounded-full blur-[80px]" />
-          <div className="float-orb orb-parallax-2 absolute bottom-10 right-[15%] w-96 h-96 bg-violet-500/15 dark:bg-violet-500/8 rounded-full blur-[100px]" />
-          <div className="float-orb absolute top-1/3 right-[30%] w-48 h-48 bg-purple-500/10 rounded-full blur-[60px]" />
-          <div className="float-orb absolute bottom-1/4 left-[35%] w-64 h-64 bg-cyan-500/10 dark:bg-cyan-500/5 rounded-full blur-[70px]" />
+    <div ref={container} className="min-h-screen overflow-hidden">
+      {/* ════════ HERO ════════ */}
+      <section className="relative min-h-[90vh] flex items-center justify-center py-20">
+        {/* Parallax background elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="particle parallax-fast absolute top-[10%] left-[10%] w-4 h-4 rounded-full bg-indigo-500/30" />
+          <div className="particle parallax-fast absolute top-[20%] right-[20%] w-3 h-3 rounded-full bg-violet-500/30" />
+          <div className="particle parallax-slow absolute top-[40%] left-[25%] w-2 h-2 rounded-full bg-purple-500/40" />
+          <div className="particle parallax-slow absolute top-[30%] right-[35%] w-5 h-5 rounded-full bg-indigo-400/20" />
+          <div className="particle absolute top-[60%] left-[60%] w-3 h-3 rounded-full bg-cyan-500/25" />
+          <div className="particle absolute top-[15%] left-[70%] w-2 h-2 rounded-full bg-pink-500/25" />
+          <div className="particle absolute top-[50%] right-[10%] w-4 h-4 rounded-full bg-emerald-500/20" />
+          <div className="particle absolute top-[70%] left-[15%] w-3 h-3 rounded-full bg-amber-500/20" />
+          {/* Large gradient orbs */}
+          <div className="parallax-fast absolute top-0 left-[15%] w-[500px] h-[500px] bg-indigo-600/10 dark:bg-indigo-600/5 rounded-full blur-[120px]" />
+          <div className="parallax-slow absolute bottom-0 right-[10%] w-[400px] h-[400px] bg-violet-600/10 dark:bg-violet-600/5 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-5xl mx-auto">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight">
-              <span className="block mb-2">
-                {splitChars("AI-Powered", "hero-line-1")}
+        <div className="hero-content relative max-w-6xl mx-auto px-4 text-center" style={{ transformStyle: "preserve-3d" }}>
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] mb-8 tracking-tight">
+            <span className="hero-word inline-block text-gray-900 dark:text-white">AI-Powered</span>{" "}
+            <span className="hero-word inline-block bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-600 dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400 bg-clip-text text-transparent">Stock</span>{" "}
+            <span className="hero-word inline-block bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 bg-clip-text text-transparent">Analytics</span>
+            <br />
+            <span className="hero-word inline-block text-3xl md:text-5xl lg:text-6xl font-bold text-gray-500 dark:text-gray-400 mt-2">
+              for Indian Markets
+            </span>
+          </h1>
+
+          {/* Decorative animated line */}
+          <div className="hero-line-decoration h-1 w-32 mx-auto bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full mb-8" />
+
+          <p className="hero-subtitle text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
+            Real-time NSE data × XGBoost × LSTM × TFT × Gemma AI — 
+            ratings, projections, resilience scores from live market feeds.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-5 justify-center">
+            <button
+              onClick={() => navigate("/RELIANCE")}
+              className="hero-btn group relative px-10 py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-2xl shadow-indigo-500/30"
+            >
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                Explore Stocks
+                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </span>
-              <span className="block bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
-                {splitChars("Stock Analytics", "hero-line-2")}
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </button>
+            <button
+              onClick={() => navigate("/screener")}
+              className="hero-btn px-10 py-5 glass font-bold text-lg rounded-2xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-gray-800 dark:text-gray-200"
+            >
+              Custom Screener
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════ INFINITE TICKER BAR ════════ */}
+      <section className="border-y border-gray-200/30 dark:border-gray-700/20 bg-white/40 dark:bg-slate-900/40 backdrop-blur-lg py-4 overflow-hidden">
+        <div className="ticker-inner flex gap-12 whitespace-nowrap w-max">
+          {/* Duplicate for seamless loop */}
+          {[...MARKET_INDICES, ...MARKET_INDICES].map((idx, i) => (
+            <div key={`${idx.name}-${i}`} className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">{idx.name}</span>
+              <span className="text-sm font-black text-gray-900 dark:text-gray-100 tabular-nums">{idx.value}</span>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${idx.positive ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400"}`}>
+                {idx.change}
               </span>
-              <span className="hero-line-3 block text-3xl md:text-4xl lg:text-5xl font-bold text-gray-500 dark:text-gray-400">
-                for Indian Markets
-              </span>
-            </h1>
-            <p className="hero-subtitle text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-              Real-time NSE data processed through XGBoost, LSTM, TFT, and Gemma AI.
-              Ratings, projections, resilience scores — all from live market data.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => navigate("/RELIANCE")}
-                className="hero-btn group px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-violet-700 transition-all duration-300 hover:scale-105 hover:shadow-2xl shadow-lg shadow-indigo-500/25"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  Explore Stocks
-                  <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-              </button>
-              <button
-                onClick={() => navigate("/screener")}
-                className="hero-btn px-8 py-4 glass font-semibold rounded-xl hover:-translate-y-1 hover:shadow-xl transition-all duration-300 text-gray-800 dark:text-gray-200 border border-gray-200/50 dark:border-gray-700/50"
-              >
-                Custom Screener
-              </button>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Market Indices Ticker Bar */}
-      <section className="ticker-section border-y border-gray-200/50 dark:border-gray-700/30 bg-white/60 dark:bg-slate-800/40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex gap-8 overflow-x-auto scrollbar-hide">
-            {MARKET_INDICES.map((index) => (
-              <div key={index.name} className="ticker-item flex items-center gap-3 whitespace-nowrap min-w-fit">
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  {index.name}
-                </span>
-                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">
-                  {index.value}
-                </span>
-                <span
-                  className={`text-xs font-bold px-2 py-0.5 rounded-md ${
-                    index.positive
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
-                  }`}
-                >
-                  {index.change}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="stats-section max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {/* ════════ STATS COUNTERS ════════ */}
+      <section className="max-w-7xl mx-auto px-4 py-16">
+        <div className="stats-grid grid grid-cols-2 md:grid-cols-4 gap-6">
           {STATS.map((stat) => (
-            <div key={stat.label} className="stat-item text-center">
-              <div className="stat-value text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-                {stat.value}
+            <div key={stat.label} className="stat-card glass rounded-2xl p-6 text-center" style={{ transformStyle: "preserve-3d" }}>
+              <div className="text-4xl md:text-5xl font-black bg-gradient-to-br from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
+                <span className="counter-value" data-target={stat.end}>0</span>
+                <span>{stat.suffix}</span>
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-semibold uppercase tracking-wider">
                 {stat.label}
               </div>
             </div>
@@ -398,137 +328,108 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Trending Stocks Grid */}
-      <section className="stocks-section max-w-7xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              Trending Stocks
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">AI-rated NSE equities</p>
-          </div>
-          <button
-            onClick={() => navigate("/screener")}
-            className="hidden sm:flex items-center gap-1 px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition-colors"
-          >
-            View All
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+      {/* ════════ HORIZONTAL SCROLL STOCKS (Pinned) ════════ */}
+      <section className="hscroll-section relative">
+        <div className="absolute top-8 left-8 z-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">Trending Stocks</h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Scroll horizontally →</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="hscroll-container flex items-center gap-8 px-8 pt-24 pb-8 min-h-screen">
           {trendingStocks.map((stock) => (
             <button
               key={stock.ticker}
               onClick={() => navigate(`/${stock.ticker}`)}
-              className="stock-card glass rounded-2xl p-5 text-left hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group"
+              className="hscroll-card glass rounded-3xl p-8 min-w-[320px] md:min-w-[380px] text-left hover:shadow-2xl transition-shadow duration-300 group flex-shrink-0"
               style={{ transformStyle: "preserve-3d" }}
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-bold text-lg text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-2xl font-black text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                   {stock.ticker}
                 </span>
-                <span
-                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${
-                    stock.ai_rating === "STRONG BUY"
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : stock.ai_rating === "BUY"
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-                      : stock.ai_rating === "HOLD"
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                      : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                  }`}
-                >
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide ${
+                  stock.ai_rating === "STRONG BUY" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                    : stock.ai_rating === "BUY" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                    : stock.ai_rating === "HOLD" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                }`}>
                   {stock.ai_rating}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 truncate">
-                {stock.company_name}
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-xs mb-4">
-                <div className="bg-gray-100/80 dark:bg-slate-700/40 rounded-lg px-2.5 py-2">
-                  <div className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-wider">P/E</div>
-                  <div className="font-bold text-gray-800 dark:text-gray-200 mt-0.5">{stock.pe_ratio}</div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{stock.company_name}</p>
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="bg-gray-100/80 dark:bg-slate-700/30 rounded-xl px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">P/E Ratio</div>
+                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1">{stock.pe_ratio}</div>
                 </div>
-                <div className="bg-gray-100/80 dark:bg-slate-700/40 rounded-lg px-2.5 py-2">
-                  <div className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-wider">ROE</div>
-                  <div className="font-bold text-gray-800 dark:text-gray-200 mt-0.5">{stock.roe}%</div>
+                <div className="bg-gray-100/80 dark:bg-slate-700/30 rounded-xl px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">ROE %</div>
+                  <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-1">{stock.roe}%</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium">TFT</span>
-                <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500 font-semibold">TFT Resilience</span>
+                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{stock.tft_score}/100</span>
+                </div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
-                    className="tft-bar-fill h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full"
                     style={{ width: `${stock.tft_score}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-gray-600 dark:text-gray-300 tabular-nums min-w-[24px] text-right">
-                  {stock.tft_score}
-                </span>
               </div>
             </button>
           ))}
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="features-section py-20 bg-gradient-to-b from-gray-50/80 to-white dark:from-slate-800/20 dark:to-transparent">
+      {/* ════════ FEATURES ════════ */}
+      <section className="py-24 bg-gradient-to-b from-gray-50/50 to-white dark:from-slate-800/10 dark:to-transparent">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Powered by{" "}
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-gray-100 mb-4">
+              Four ML Models.{" "}
               <span className="bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-                Four ML Models
+                One Platform.
               </span>
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
-              Cutting-edge machine learning applied to real NSE India market data
+            <p className="text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
+              Real NSE data meets cutting-edge machine learning
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feature) => (
-              <div
-                key={feature.title}
-                className="feature-card glass rounded-2xl p-7 hover:-translate-y-1.5 hover:shadow-2xl transition-all duration-300 group cursor-default"
-              >
-                <div className="feature-icon text-4xl mb-4 inline-block group-hover:scale-125 transition-transform duration-500">
-                  {feature.icon}
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2 text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {feature.description}
-                </p>
+          <div className="features-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="feature-card glass rounded-3xl p-8 hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group cursor-default" style={{ transformStyle: "preserve-3d" }}>
+                <div className="feat-icon text-5xl mb-5 inline-block group-hover:scale-125 transition-transform duration-500">{f.icon}</div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">{f.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{f.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* ════════ CTA ════════ */}
       <section className="cta-section max-w-7xl mx-auto px-4 py-20">
-        <div className="cta-card relative glass rounded-3xl p-10 md:p-16 text-center overflow-hidden">
+        <div className="cta-box relative glass rounded-[2rem] p-12 md:p-20 text-center overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-violet-500/5 to-purple-500/5" />
-          <div className="float-orb absolute -top-10 left-1/4 w-56 h-56 bg-indigo-500/10 rounded-full blur-[80px]" />
-          <div className="float-orb absolute -bottom-10 right-1/4 w-56 h-56 bg-violet-500/10 rounded-full blur-[80px]" />
+          <div className="particle absolute -top-10 left-1/3 w-60 h-60 bg-indigo-500/10 rounded-full blur-[80px]" />
+          <div className="particle absolute -bottom-10 right-1/3 w-60 h-60 bg-violet-500/10 rounded-full blur-[80px]" />
           <div className="relative">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Start Analyzing NSE Stocks
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-gray-100 mb-5">
+              Start Analyzing
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-lg mx-auto text-lg">
-              Search any ticker for AI-powered ratings, price projections, and fundamental analysis
+            <p className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto">
+              Search any NSE ticker for AI-powered insights
             </p>
             <button
               onClick={() => navigate("/HDFCBANK")}
-              className="cta-btn group px-10 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-violet-700 transition-all duration-300 hover:scale-105 shadow-xl shadow-indigo-500/30"
+              className="cta-pulse group px-12 py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 hover:scale-105"
             >
-              <span className="flex items-center justify-center gap-2">
-                Try HDFC Bank Analysis
-                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              <span className="flex items-center justify-center gap-3">
+                Try HDFC Bank
+                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </span>
             </button>
@@ -537,11 +438,11 @@ export function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200/50 dark:border-gray-700/30 py-10">
+      <footer className="border-t border-gray-200/30 dark:border-gray-700/20 py-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            <span className="font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">Quant Screener India</span>
-            {" "}— AI-powered NSE stock analytics. Data sourced live from NSE India.
+          <p className="text-gray-500 dark:text-gray-400 font-medium">
+            <span className="font-bold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">Quant Screener India</span>
+            {" "}— AI-powered NSE stock analytics
           </p>
         </div>
       </footer>
