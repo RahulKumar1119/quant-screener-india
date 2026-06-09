@@ -24,16 +24,18 @@ export function IntelEngineDashboard({
   return (
     <div className="flex flex-col lg:flex-row gap-4">
       {/* Chart section - 70% on desktop */}
-      <div className="w-full lg:w-[70%] min-w-0 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <div className="w-full lg:w-[70%] min-w-0 glass rounded-lg p-4 shadow-inner">
         <PriceChart historical={historical} lstmProjection={lstmProjection} />
       </div>
 
       {/* ML Scoring panel - 30% on desktop */}
-      <div className="w-full lg:w-[30%] flex flex-col gap-4">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div className="w-full lg:w-[30%] flex flex-col gap-0">
+        <div className="glass rounded-lg">
           <TFTScoreGauge tftScore={tftScore} />
         </div>
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        {/* Gradient divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent my-2" />
+        <div className="glass rounded-lg">
           <XGBoostRatingBadge xgboost={xgboost} />
         </div>
       </div>

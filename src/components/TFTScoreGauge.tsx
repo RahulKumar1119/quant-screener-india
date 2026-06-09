@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { PieChart, Pie, Cell } from "recharts";
 import type { TFTOutput, TrendOutlook } from "../types/index";
 
@@ -12,6 +13,32 @@ const trendColors: Record<TrendOutlook, string> = {
 };
 
 export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const frameRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!tftScore) return;
+
+    const target = tftScore.score;
+    const duration = 800;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out: 1 - (1-t)^3
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimatedScore(Math.round(eased * target));
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [tftScore]);
+
   if (!tftScore) {
     return (
       <div className="flex items-center justify-center h-full p-6">
@@ -26,8 +53,8 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
 
   // Semi-circle gauge data: filled portion + remaining
   const gaugeData = [
-    { name: "score", value: score },
-    { name: "remaining", value: 100 - score },
+    { name: "score", value: animatedScore },
+    { name: "remaining", value: 100 - animatedScore },
   ];
 
   // Determine fill color based on score
@@ -68,7 +95,7 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
         </PieChart>
         <div className="absolute inset-0 flex items-end justify-center pb-1">
           <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {score}
+            {animatedScore}
           </span>
         </div>
       </div>

@@ -14,9 +14,15 @@ interface MetricCard {
 }
 
 const badgeClasses: Record<"green" | "red" | "neutral", string> = {
-  green: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  red: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  green: "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900 dark:to-emerald-900 dark:text-green-200 shadow-sm shadow-green-500/20",
+  red: "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 dark:from-red-900 dark:to-rose-900 dark:text-red-200 shadow-sm shadow-red-500/20",
   neutral: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+};
+
+const topBorderColors: Record<"green" | "red" | "neutral", string> = {
+  green: "border-t-green-500",
+  red: "border-t-red-500",
+  neutral: "border-t-slate-300 dark:border-t-slate-600",
 };
 
 export function ProfileCardGrid({ profile }: ProfileCardGridProps) {
@@ -55,12 +61,13 @@ export function ProfileCardGrid({ profile }: ProfileCardGridProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-      {metrics.map((metric) => {
+      {metrics.map((metric, index) => {
         const color = getBadgeColor(metric.field, metric.rawValue);
         return (
           <div
             key={metric.field}
-            className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm"
+            className={`glass rounded-lg border-t-2 ${topBorderColors[color]} p-4 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 animate-fade-in`}
+            style={{ animationDelay: `${index * 60}ms` }}
           >
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
               {metric.label}

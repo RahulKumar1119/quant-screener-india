@@ -83,7 +83,7 @@ export function ScreenerResultsGrid({
 
   if (results.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
+      <div className="glass rounded-lg p-8 text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400">
           No results. Run a query to see matching tickers.
         </p>
@@ -93,9 +93,9 @@ export function ScreenerResultsGrid({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 min-w-0">
+      <div className="overflow-x-auto glass rounded-lg min-w-0">
         <table className="w-full min-w-[700px] text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <thead className="bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th
                 onClick={() => handleSort("ticker")}
@@ -142,10 +142,11 @@ export function ScreenerResultsGrid({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedResults.map((ticker) => (
+            {sortedResults.map((ticker, index) => (
               <tr
                 key={ticker.ticker}
-                className="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="hover:bg-gradient-to-r hover:from-indigo-500/5 hover:to-transparent transition-all duration-200 animate-fade-in"
+                style={{ animationDelay: `${index * 30}ms` }}
               >
                 <td className="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">
                   {ticker.ticker}
@@ -183,14 +184,14 @@ export function ScreenerResultsGrid({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
           >
             Prev
           </button>
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
           >
             Next
           </button>
@@ -203,10 +204,10 @@ export function ScreenerResultsGrid({
 function RatingBadge({ rating }: { rating: string }) {
   const colorMap: Record<string, string> = {
     "STRONG BUY":
-      "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
-    BUY: "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200",
-    HOLD: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
-    SELL: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
+      "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 shadow-sm shadow-green-500/20",
+    BUY: "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 shadow-sm shadow-emerald-500/20",
+    HOLD: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 shadow-sm shadow-yellow-500/20",
+    SELL: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 shadow-sm shadow-red-500/20",
   };
 
   const colors =

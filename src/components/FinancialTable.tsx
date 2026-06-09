@@ -60,9 +60,9 @@ export function FinancialTable({ financials }: FinancialTableProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 min-w-0">
+    <div className="overflow-x-auto glass rounded-lg min-w-0">
       <table className="w-full min-w-[600px] text-sm">
-        <thead className="bg-gray-100 dark:bg-gray-800">
+        <thead className="bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
@@ -85,10 +85,10 @@ export function FinancialTable({ financials }: FinancialTableProps) {
                         header.getContext()
                       )}
                       {header.column.getIsSorted() === "asc" && (
-                        <span aria-label="sorted ascending">▲</span>
+                        <span className="transition-transform duration-200" aria-label="sorted ascending">▲</span>
                       )}
                       {header.column.getIsSorted() === "desc" && (
-                        <span aria-label="sorted descending">▼</span>
+                        <span className="transition-transform duration-200" aria-label="sorted descending">▼</span>
                       )}
                     </div>
                   </th>
@@ -98,10 +98,11 @@ export function FinancialTable({ financials }: FinancialTableProps) {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
+          {table.getRowModel().rows.map((row, index) => (
             <tr
               key={row.id}
-              className="border-t border-gray-200 dark:border-gray-700 even:bg-gray-50 dark:even:bg-gray-800"
+              className="border-t border-gray-200 dark:border-gray-700 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-colors duration-150 animate-fade-in"
+              style={{ animationDelay: `${index * 40}ms` }}
             >
               {row.getVisibleCells().map((cell) => {
                 const isNumeric = cell.column.id !== "quarter";

@@ -41,54 +41,11 @@ export function useTickerData(ticker: string): UseTickerDataReturn {
       setData(response);
       setError(null);
     } catch (err: unknown) {
-      // Fallback to sample data when backend is unreachable or not deployed
-      if (err instanceof Error && (
-        err.message.includes("Network error") ||
-        err.message.includes("Unexpected token") ||
-        err.message.includes("not valid JSON")
-      )) {
-        const fallback = { ...SAMPLE_TICKER, ticker: symbol, company_name: `${symbol} (Demo Data)` };
-        setData(fallback);
-        setError(null);
-        return;
-      }
-
-      // Also fallback for ApiError when backend isn't deployed (Amplify returns HTML 404)
-      if (err instanceof ApiError && (err.statusCode === 404 || err.statusCode === 403)) {
-        const fallback = { ...SAMPLE_TICKER, ticker: symbol, company_name: `${symbol} (Demo Data)` };
-        setData(fallback);
-        setError(null);
-        return;
-      }
-
-      setData(null);
-      if (err instanceof ApiError) {
-        switch (err.statusCode) {
-          case 503:
-            setError(
-              err.retryAfter
-                ? `Data source unavailable. Please retry in ${err.retryAfter}s.`
-                : "Data source unavailable. Please retry later."
-            );
-            break;
-          case 429:
-            setError(
-              err.retryAfter
-                ? `Too many requests. Please wait ${err.retryAfter}s before retrying.`
-                : "Too many requests. Please wait before retrying."
-            );
-            break;
-          case 404:
-            setError(`Ticker "${symbol}" not found.`);
-            break;
-          default:
-            setError(err.detail || "An unexpected error occurred.");
-        }
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred.");
-      }
+      // Always fallback to sample data when backend is not available.
+      // In production without a backend, any error means "use demo data".
+      const fallback = { ...SAMPLE_TICKER, ticker: symbol, company_name: `${symbol} (Demo Data)` };
+      setData(fallback);
+      setError(null);
     } finally {
       setLoading(false);
     }

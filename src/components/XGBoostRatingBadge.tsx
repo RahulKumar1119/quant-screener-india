@@ -25,7 +25,7 @@ export function XGBoostRatingBadge({ xgboost }: XGBoostRatingBadgeProps) {
         XGBoost AI Rating
       </p>
       <span
-        className={`inline-block px-4 py-2 text-sm font-bold rounded-lg ${colorClass}`}
+        className={`inline-block px-4 py-2 text-sm font-bold rounded-lg animate-pulse-glow ${colorClass}`}
       >
         {rating}
       </span>

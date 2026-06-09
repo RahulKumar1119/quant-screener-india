@@ -7,22 +7,22 @@ import { GemmaSummaryCard } from "./GemmaSummaryCard";
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="space-y-6">
       {/* Profile cards skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
-            className="h-24 rounded-lg bg-gray-200 dark:bg-gray-700"
+            className="skeleton h-24 rounded-lg"
           />
         ))}
       </div>
       {/* Chart skeleton */}
-      <div className="h-96 rounded-lg bg-gray-200 dark:bg-gray-700" />
+      <div className="skeleton h-96 rounded-lg" />
       {/* Table skeleton */}
-      <div className="h-48 rounded-lg bg-gray-200 dark:bg-gray-700" />
+      <div className="skeleton h-48 rounded-lg" />
       {/* Summary skeleton */}
-      <div className="h-24 rounded-lg bg-gray-200 dark:bg-gray-700" />
+      <div className="skeleton h-24 rounded-lg" />
     </div>
   );
 }
@@ -65,7 +65,7 @@ function ErrorBanner({ error, onRetry }: ErrorBannerProps) {
 
   return (
     <div
-      className={`rounded-lg p-4 flex items-center justify-between ${
+      className={`glass rounded-lg p-4 flex items-center justify-between ${
         is503
           ? "bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800"
           : "bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800"
@@ -121,10 +121,10 @@ export function AnalyticsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6 transition-opacity duration-300">
       {/* Partial response banner */}
       {isPartial && (
-        <div className="rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3">
+        <div className="glass rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 p-3">
           <p className="text-sm text-amber-800 dark:text-amber-200">
             Some ML-powered analyses are temporarily unavailable. Showing
             available data.

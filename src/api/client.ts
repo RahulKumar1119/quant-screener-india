@@ -91,6 +91,12 @@ export async function fetchTickerData(ticker: string): Promise<TickerResponse> {
     throw new ApiError(errorResponse, response.status);
   }
 
+  // Guard against non-JSON responses (e.g., Amplify serving HTML for unknown paths)
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("Network error: Server returned non-JSON response");
+  }
+
   const data: TickerResponse = await response.json();
   return data;
 }

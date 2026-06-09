@@ -176,3 +176,25 @@
   );
   background-size: 200% 100%;
 }
+
+/* ============================================
+   Mobile Responsive Optimizations
+   ============================================ */
+@media (max-width: 767px) {
+  .glass {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .glass {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  }
+
+  button,
+  a,
+  input {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

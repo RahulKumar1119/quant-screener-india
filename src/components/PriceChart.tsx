@@ -8,6 +8,19 @@ interface PriceChartProps {
   lstmProjection: LSTMProjection | null;
 }
 
+function getCSSColor(varName: string): string {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim();
+  if (!raw) return "#ffffff";
+  // Convert "R G B" triplet to hex or rgb()
+  const parts = raw.split(" ").map(Number);
+  if (parts.length === 3) {
+    return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
+  }
+  return raw;
+}
+
 export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -15,18 +28,21 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const bgColor = getCSSColor("--color-surface-elevated");
+    const textColor = getCSSColor("--color-border");
     const isDark = document.documentElement.classList.contains("dark");
+    const gridColor = isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(226, 232, 240, 0.8)";
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 350,
       layout: {
-        background: { color: isDark ? "#111827" : "#ffffff" },
+        background: { color: bgColor },
         textColor: isDark ? "#f3f4f6" : "#374151",
       },
       grid: {
-        vertLines: { color: isDark ? "#374151" : "#e5e7eb" },
-        horzLines: { color: isDark ? "#374151" : "#e5e7eb" },
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
       },
       timeScale: {
         timeVisible: false,
@@ -89,10 +105,10 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
   }, [historical, lstmProjection]);
 
   return (
-    <div className="w-full min-w-0">
+    <div className="w-full min-w-0 animate-fade-in">
       <div className="flex items-center gap-4 mb-2 text-xs text-gray-500 dark:text-gray-400">
         <span className="flex items-center gap-1">
-          <span className="inline-block w-4 h-0.5 bg-gray-500" />
+          <span className="inline-block w-4 h-0.5 bg-gray-500 rounded-full" />
           Historical (30d)
         </span>
         {lstmProjection && (
@@ -102,7 +118,7 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
           </span>
         )}
       </div>
-      <div ref={containerRef} className="w-full min-w-0 rounded-lg overflow-hidden" />
+      <div ref={containerRef} className="w-full min-w-0 rounded-xl overflow-hidden" />
     </div>
   );
 }
