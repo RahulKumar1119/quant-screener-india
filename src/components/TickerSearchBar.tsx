@@ -7,6 +7,7 @@ import type { TickerSummary } from "../types/index";
  * Search input with typeahead suggestions filtered from the Nifty 500 list.
  * Filters suggestions as case-insensitive substring match on ticker symbol.
  * On selection, navigates to /:ticker route.
+ * Premium: focus width expansion, accent ring, glass dropdown, fade transitions.
  */
 export function TickerSearchBar() {
   const navigate = useNavigate();
@@ -93,7 +94,10 @@ export function TickerSearchBar() {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-md">
+    <div
+      ref={containerRef}
+      className="relative w-full max-w-md focus-within:max-w-lg transition-all duration-200 ease-out focus-within:ring-2 focus-within:ring-indigo-500/50 rounded-lg"
+    >
       <input
         ref={inputRef}
         type="text"
@@ -111,14 +115,14 @@ export function TickerSearchBar() {
         aria-autocomplete="list"
         aria-controls="ticker-suggestions"
         role="combobox"
-        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none transition-colors"
       />
 
       {isOpen && suggestions.length > 0 && (
         <ul
           id="ticker-suggestions"
           role="listbox"
-          className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-50 mt-1 w-full glass rounded-lg max-h-60 overflow-y-auto transition-[opacity,transform] duration-150 animate-fade-in"
         >
           {suggestions.map((item, index) => (
             <li
@@ -127,10 +131,10 @@ export function TickerSearchBar() {
               aria-selected={index === highlightedIndex}
               onMouseDown={() => selectTicker(item.ticker)}
               onMouseEnter={() => setHighlightedIndex(index)}
-              className={`px-4 py-2 cursor-pointer text-sm ${
+              className={`px-4 py-2 cursor-pointer text-sm transition-colors duration-100 ${
                 index === highlightedIndex
-                  ? "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
-                  : "text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "border-l-2 border-indigo-500 bg-gradient-to-r from-indigo-500/10 to-transparent text-gray-900 dark:text-gray-100"
+                  : "border-l-2 border-transparent text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
             >
               <span className="font-medium">{item.ticker}</span>

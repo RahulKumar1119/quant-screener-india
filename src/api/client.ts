@@ -30,12 +30,16 @@ async function parseErrorResponse(
   let retry_after: number | undefined;
 
   try {
-    const body = await response.json();
-    if (body.detail) {
-      detail = body.detail;
-    }
-    if (body.retry_after !== undefined) {
-      retry_after = body.retry_after;
+    const text = await response.text();
+    // Only parse as JSON if it looks like JSON
+    if (text.trim().startsWith("{")) {
+      const body = JSON.parse(text);
+      if (body.detail) {
+        detail = body.detail;
+      }
+      if (body.retry_after !== undefined) {
+        retry_after = body.retry_after;
+      }
     }
   } catch {
     // If body isn't valid JSON, use the default detail message

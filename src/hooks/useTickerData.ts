@@ -41,8 +41,20 @@ export function useTickerData(ticker: string): UseTickerDataReturn {
       setData(response);
       setError(null);
     } catch (err: unknown) {
-      // Fallback to sample data when backend is unreachable
-      if (err instanceof Error && err.message.includes("Network error")) {
+      // Fallback to sample data when backend is unreachable or not deployed
+      if (err instanceof Error && (
+        err.message.includes("Network error") ||
+        err.message.includes("Unexpected token") ||
+        err.message.includes("not valid JSON")
+      )) {
+        const fallback = { ...SAMPLE_TICKER, ticker: symbol, company_name: `${symbol} (Demo Data)` };
+        setData(fallback);
+        setError(null);
+        return;
+      }
+
+      // Also fallback for ApiError when backend isn't deployed (Amplify returns HTML 404)
+      if (err instanceof ApiError && (err.statusCode === 404 || err.statusCode === 403)) {
         const fallback = { ...SAMPLE_TICKER, ticker: symbol, company_name: `${symbol} (Demo Data)` };
         setData(fallback);
         setError(null);
