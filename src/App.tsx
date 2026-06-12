@@ -9,7 +9,7 @@ function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>
-        <div className="min-h-screen bg-black text-gray-100">
+        <div className="min-h-screen bg-surface text-gray-100">
           <NavigationHeader />
           <Routes>
             <Route path="/" element={<HomePage />} />
