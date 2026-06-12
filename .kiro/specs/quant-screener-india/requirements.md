@@ -240,3 +240,28 @@ An AI-powered Financial Stock Screening and Analytics Platform focused on the In
 12. THE LSTM training script SHALL use MinMaxScaler normalization and create sliding window sequences of 30 trading days as input with the next day's close price as the target.
 13. THE TFT training script SHALL engineer temporal features from historical REPO rate changes and sector index momentum indicators.
 14. IF NSE India APIs are unreachable during training, THEN the training script SHALL exit with a descriptive error message and non-zero exit code.
+
+---
+
+### Requirement 15: User Authentication (Sign-Up / Sign-In)
+
+**User Story:** As a user, I want to create an account and sign in to the platform, so that my preferences and watchlists can be saved and my usage can be tracked.
+
+#### Acceptance Criteria
+
+1. THE Platform SHALL provide a /signup route displaying a registration form with email and password fields.
+2. THE Platform SHALL provide a /signin route displaying a login form with email and password fields.
+3. WHEN a user submits the signup form with a valid email and password (minimum 8 characters), THE Backend SHALL create a new user record in DynamoDB and return a JWT access token.
+4. WHEN a user submits the signin form with correct credentials, THE Backend SHALL verify the password hash and return a JWT access token.
+5. THE Backend SHALL hash passwords using bcrypt before storing them in DynamoDB.
+6. THE Backend SHALL issue JWT tokens with a 24-hour expiration containing the user's email and user ID as claims.
+7. THE Platform SHALL store the JWT token in localStorage upon successful signup or signin.
+8. WHEN a JWT token exists in localStorage, THE Navigation_Header SHALL display the user's email and a Logout button instead of Sign In/Sign Up links.
+9. WHEN the user clicks Logout, THE Platform SHALL remove the JWT token from localStorage and redirect to the home page.
+10. THE Backend SHALL provide a POST /api/auth/signup endpoint accepting email and password in JSON body.
+11. THE Backend SHALL provide a POST /api/auth/signin endpoint accepting email and password in JSON body.
+12. THE Backend SHALL provide a GET /api/auth/me endpoint that validates the JWT from the Authorization header and returns user profile data.
+13. IF a user attempts to sign up with an email that already exists, THEN THE Backend SHALL return a 409 Conflict response with a descriptive error message.
+14. IF a user submits invalid credentials on signin, THEN THE Backend SHALL return a 401 Unauthorized response.
+15. THE Platform SHALL validate email format and password length on the client side before submitting to the backend.
+16. THE signup and signin forms SHALL display error messages returned from the backend inline below the form fields.

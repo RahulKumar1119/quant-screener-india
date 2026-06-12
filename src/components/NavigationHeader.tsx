@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { TickerSearchBar } from "./TickerSearchBar";
 import { ThemeToggle } from "./ThemeToggle";
+import { useAuth } from "../hooks/useAuth";
 
 /**
- * Sticky navigation header with Logo, TickerSearchBar, and ThemeToggle.
+ * Sticky navigation header with Logo, TickerSearchBar, ThemeToggle, and auth controls.
  * Responsive: search bar collapses to a search icon on mobile (<768px).
  * Premium: gradient background, gradient bottom border, scroll-aware elevation.
+ * Shows user email + Logout when authenticated, or Sign In / Sign Up links when not.
  */
 export function NavigationHeader() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,9 +35,9 @@ export function NavigationHeader() {
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         {/* Logo / Brand */}
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
+          <Link to="/" className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
             QuantScreener
-          </span>
+          </Link>
         </div>
 
         {/* Desktop search bar — hidden on mobile */}
@@ -41,8 +45,42 @@ export function NavigationHeader() {
           <TickerSearchBar />
         </div>
 
-        {/* Right side: mobile search icon + theme toggle */}
-        <div className="flex items-center gap-2">
+        {/* Right side: auth controls + mobile search icon + theme toggle */}
+        <div className="flex items-center gap-3">
+          {/* Auth controls */}
+          {!isLoading && (
+            <>
+              {isAuthenticated && user ? (
+                <div className="flex items-center gap-3">
+                  <span className="hidden sm:inline text-sm text-gray-300 truncate max-w-[160px]">
+                    {user.email}
+                  </span>
+                  <button
+                    onClick={logout}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/signin"
+                    className="text-sm px-3 py-1.5 rounded-lg text-gray-300 hover:text-white transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="text-sm px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 transition-all"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
+
           {/* Mobile search icon — visible only on mobile */}
           <button
             onClick={() => setMobileSearchOpen((prev) => !prev)}

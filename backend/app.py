@@ -15,6 +15,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from auth import router as auth_router
 from cache import CacheManager
 from ml_models import GemmaModel, LSTMModel, TFTModel, XGBoostModel
 from nse_client import NSEClient
@@ -88,6 +89,9 @@ app.add_middleware(
 # Lambda handler via Mangum (used when deployed to AWS Lambda)
 from mangum import Mangum
 handler = Mangum(app)
+
+# Include auth router
+app.include_router(auth_router)
 
 
 # ---------------------------------------------------------------------------

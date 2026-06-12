@@ -1599,3 +1599,183 @@ Each training script produces a `metrics.json` alongside the model artifact:
   }
 }
 ```
+
+---
+
+## User Authentication (JWT)
+
+### Architecture
+
+```
+Frontend (React SPA)
+    │
+    ├── /signup → SignUpPage component
+    ├── /signin → SignInPage component
+    │
+    ↓ POST /api/auth/signup or /api/auth/signin
+    │
+FastAPI Backend
+    │
+    ├── bcrypt password hashing
+    ├── PyJWT token generation (HS256, 24hr expiry)
+    ├── DynamoDB Users table (PK: email)
+    │
+    ↓ Response: { "token": "eyJ...", "user": { "email": "...", "user_id": "..." } }
+    │
+Frontend stores token in localStorage
+    → Subsequent API requests include: Authorization: Bearer <token>
+```
+
+### DynamoDB Users Table Schema
+
+```
+Table: quant-screener-users
+  PK: email (String)
+  Attributes:
+    - user_id (String, UUID)
+    - password_hash (String, bcrypt)
+    - created_at (String, ISO 8601)
+```
+
+### API Endpoints
+
+#### POST /api/auth/signup
+```json
+// Request
+{ "email": "user@example.com", "password": "securepass123" }
+
+// Response 201
+{ "token": "eyJ...", "user": { "email": "user@example.com", "user_id": "uuid-here" } }
+
+// Response 409 (email exists)
+{ "detail": "An account with this email already exists." }
+
+// Response 422 (validation error)
+{ "detail": "Password must be at least 8 characters." }
+```
+
+#### POST /api/auth/signin
+```json
+// Request
+{ "email": "user@example.com", "password": "securepass123" }
+
+// Response 200
+{ "token": "eyJ...", "user": { "email": "user@example.com", "user_id": "uuid-here" } }
+
+// Response 401
+{ "detail": "Invalid email or password." }
+```
+
+#### GET /api/auth/me
+```
+Authorization: Bearer eyJ...
+
+// Response 200
+{ "email": "user@example.com", "user_id": "uuid-here", "created_at": "2026-06-10T..." }
+
+// Response 401
+{ "detail": "Invalid or expired token." }
+```
+
+### Backend Implementation
+
+```python
+# backend/auth.py
+
+import bcrypt
+import jwt
+import uuid
+from datetime import datetime, timedelta
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel, EmailStr, Field
+import boto3
+
+JWT_SECRET = os.environ.get("JWT_SECRET", "change-me-in-production")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRY_HOURS = 24
+
+router = APIRouter(prefix="/api/auth")
+dynamodb = boto3.resource("dynamodb")
+users_table = dynamodb.Table("quant-screener-users")
+
+class SignUpRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+
+class SignInRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class AuthResponse(BaseModel):
+    token: str
+    user: dict
+
+def create_token(email: str, user_id: str) -> str:
+    payload = {
+        "email": email,
+        "user_id": user_id,
+        "exp": datetime.utcnow() + timedelta(hours=JWT_EXPIRY_HOURS),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+@router.post("/signup", status_code=201)
+async def signup(req: SignUpRequest) -> AuthResponse:
+    # Check if user exists
+    existing = users_table.get_item(Key={"email": req.email}).get("Item")
+    if existing:
+        raise HTTPException(409, "An account with this email already exists.")
+    
+    # Create user
+    user_id = str(uuid.uuid4())
+    password_hash = bcrypt.hashpw(req.password.encode(), bcrypt.gensalt()).decode()
+    users_table.put_item(Item={
+        "email": req.email,
+        "user_id": user_id,
+        "password_hash": password_hash,
+        "created_at": datetime.utcnow().isoformat(),
+    })
+    
+    token = create_token(req.email, user_id)
+    return AuthResponse(token=token, user={"email": req.email, "user_id": user_id})
+
+@router.post("/signin")
+async def signin(req: SignInRequest) -> AuthResponse:
+    item = users_table.get_item(Key={"email": req.email}).get("Item")
+    if not item or not bcrypt.checkpw(req.password.encode(), item["password_hash"].encode()):
+        raise HTTPException(401, "Invalid email or password.")
+    
+    token = create_token(req.email, item["user_id"])
+    return AuthResponse(token=token, user={"email": req.email, "user_id": item["user_id"]})
+
+@router.get("/me")
+async def get_me(token: str = Depends(get_current_user)):
+    return token  # Returns decoded JWT payload
+```
+
+### Frontend Components
+
+```
+src/components/
+├── SignUpPage.tsx       # Registration form
+├── SignInPage.tsx       # Login form
+src/hooks/
+├── useAuth.ts          # Auth context (token, user, login, logout, isAuthenticated)
+src/api/
+├── auth.ts             # API calls: signup(), signin(), getMe()
+```
+
+### Auth Context (useAuth hook)
+
+```typescript
+interface AuthContextValue {
+  user: { email: string; user_id: string } | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  login: (token: string, user: { email: string; user_id: string }) => void;
+  logout: () => void;
+}
+```
+
+- On mount: read token from localStorage, validate with /api/auth/me
+- On login: store token in localStorage, set user state
+- On logout: remove token from localStorage, clear user state, navigate to /
