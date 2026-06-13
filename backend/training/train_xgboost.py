@@ -107,7 +107,7 @@ def main() -> None:
         if features_df.empty:
             continue
 
-        labels = generate_xgboost_labels(features_df, forward_days=90)
+        labels = generate_xgboost_labels(features_df, forward_days=30)
 
         # Align features and labels (drop NaN labels from forward window)
         valid_mask = labels.notna()
@@ -115,14 +115,13 @@ def main() -> None:
             continue
 
         feature_cols = [
-            "return_30d",
-            "return_60d",
-            "volatility_20d",
-            "volume_ratio",
-            "rsi_14",
-            "ma_crossover",
-            "dist_from_high",
-            "atr_normalized",
+            "return_5d", "return_10d", "return_20d", "return_30d", "return_60d",
+            "volatility_10d", "volatility_20d",
+            "volume_ratio", "volume_trend", "volume_spike",
+            "rsi_14", "macd_histogram", "bb_position",
+            "ma_5_20_cross", "ma_20_50_cross", "ema_ratio",
+            "dist_from_high", "dist_from_low",
+            "atr_normalized", "candle_body_ratio", "trend_strength",
         ]
 
         features_valid = features_df.loc[valid_mask, feature_cols]
@@ -169,9 +168,15 @@ def main() -> None:
         max_depth=args.max_depth,
         learning_rate=args.learning_rate,
         eval_metric="mlogloss",
-        early_stopping_rounds=20,
+        early_stopping_rounds=30,
         use_label_encoder=False,
         random_state=42,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        min_child_weight=5,
+        reg_alpha=0.1,
+        reg_lambda=1.0,
+        gamma=0.1,
     )
 
     model.fit(
@@ -225,14 +230,13 @@ def main() -> None:
             "learning_rate": args.learning_rate,
         },
         "features": [
-            "return_30d",
-            "return_60d",
-            "volatility_20d",
-            "volume_ratio",
-            "rsi_14",
-            "ma_crossover",
-            "dist_from_high",
-            "atr_normalized",
+            "return_5d", "return_10d", "return_20d", "return_30d", "return_60d",
+            "volatility_10d", "volatility_20d",
+            "volume_ratio", "volume_trend", "volume_spike",
+            "rsi_14", "macd_histogram", "bb_position",
+            "ma_5_20_cross", "ma_20_50_cross", "ema_ratio",
+            "dist_from_high", "dist_from_low",
+            "atr_normalized", "candle_body_ratio", "trend_strength",
         ],
     }
 
