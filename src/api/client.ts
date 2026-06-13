@@ -1,6 +1,6 @@
 import type { TickerResponse, AllTickersResponse, ErrorResponse } from "../types/index";
 
-const BASE_URL = "";
+const BASE_URL = "https://z3d366wlgi.execute-api.ap-south-1.amazonaws.com";
 
 /**
  * Custom error class for API errors with typed ErrorResponse data.

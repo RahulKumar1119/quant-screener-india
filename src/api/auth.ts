@@ -5,7 +5,7 @@
  * Handles error responses (409, 401, 422) with typed error messages.
  */
 
-const BASE_URL = "";
+const BASE_URL = "https://z3d366wlgi.execute-api.ap-south-1.amazonaws.com";
 
 export interface AuthUser {
   email: string;
