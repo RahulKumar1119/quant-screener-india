@@ -179,9 +179,9 @@ def main() -> None:
     print(f"  Validation MAE:  {val_mae:.6f}")
     print(f"  Validation MAPE: {mape:.2f}%")
 
-    # Save model (Keras SavedModel format)
+    # Save model (Keras native format)
     os.makedirs(args.output_dir, exist_ok=True)
-    model_path = os.path.join(args.output_dir, "saved_model")
+    model_path = os.path.join(args.output_dir, "model.keras")
     model.save(model_path)
     print(f"\n  Model saved to: {model_path}")
 
