@@ -45,6 +45,7 @@ router = APIRouter(prefix="/api/auth")
 class SignUpRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
+    username: str = Field(default="", max_length=30)
 
 
 class SignInRequest(BaseModel):
@@ -120,17 +121,20 @@ async def signup(req: SignUpRequest) -> AuthResponse:
     password_hash = bcrypt.hashpw(req.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     created_at = datetime.now(timezone.utc).isoformat()
 
+    username = req.username.strip() or req.email.split("@")[0]
+
     users_table.put_item(
         Item={
             "email": req.email,
             "user_id": user_id,
+            "username": username,
             "password_hash": password_hash,
             "created_at": created_at,
         }
     )
 
     token = create_token(req.email, user_id)
-    return AuthResponse(token=token, user={"email": req.email, "user_id": user_id})
+    return AuthResponse(token=token, user={"email": req.email, "user_id": user_id, "username": username})
 
 
 @router.post("/signin")
@@ -152,7 +156,7 @@ async def signin(req: SignInRequest) -> AuthResponse:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     token = create_token(req.email, item["user_id"])
-    return AuthResponse(token=token, user={"email": req.email, "user_id": item["user_id"]})
+    return AuthResponse(token=token, user={"email": req.email, "user_id": item["user_id"], "username": item.get("username", req.email.split("@")[0])})
 
 
 @router.get("/me")

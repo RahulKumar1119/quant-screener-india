@@ -12,18 +12,25 @@ import { useAuth } from "../hooks/useAuth";
  */
 export function SignUpPage() {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; username?: string; password?: string; confirm?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   function validateFields(): boolean {
-    const errors: { email?: string; password?: string; confirm?: string } = {};
+    const errors: { email?: string; username?: string; password?: string; confirm?: string } = {};
+
+    if (!username.trim()) {
+      errors.username = "Username is required.";
+    } else if (username.trim().length < 3) {
+      errors.username = "Username must be at least 3 characters.";
+    }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim()) {
@@ -54,7 +61,7 @@ export function SignUpPage() {
 
     setIsLoading(true);
     try {
-      const result = await signup(email, password);
+      const result = await signup(email, password, username);
       login(result.token, result.user);
       navigate("/");
     } catch (err) {
@@ -91,6 +98,27 @@ export function SignUpPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+            {/* Username field */}
+            <div>
+              <label htmlFor="signup-username" className="block text-sm font-medium text-gray-300 mb-1.5">
+                Username
+              </label>
+              <input
+                id="signup-username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`w-full px-4 py-2.5 rounded-lg bg-white/5 border text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors ${
+                  fieldErrors.username ? "border-red-500/50" : "border-white/10"
+                }`}
+                placeholder="Choose a username"
+              />
+              {fieldErrors.username && (
+                <p className="mt-1 text-xs text-red-400">{fieldErrors.username}</p>
+              )}
+            </div>
+
             {/* Email field */}
             <div>
               <label htmlFor="signup-email" className="block text-sm font-medium text-gray-300 mb-1.5">

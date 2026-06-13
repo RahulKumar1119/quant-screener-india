@@ -25,12 +25,12 @@ export function NavigationHeader() {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full bg-gradient-to-r from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-shadow duration-200 ${
-        scrolled ? "shadow-xl backdrop-blur-xl" : ""
+      className={`sticky top-0 z-50 w-full bg-black/80 backdrop-blur-lg border-b border-white/5 transition-all duration-200 ${
+        scrolled ? "shadow-lg shadow-indigo-500/5" : ""
       }`}
     >
       {/* Gradient bottom border */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgb(var(--color-accent))] to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
 
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         {/* Logo / Brand */}
@@ -54,13 +54,16 @@ export function NavigationHeader() {
                 <div className="flex items-center gap-3">
                   <Link
                     to="/profile"
-                    className="hidden sm:inline text-sm text-gray-300 hover:text-white truncate max-w-[160px] transition-colors"
+                    className="hidden sm:flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 transition-all"
                   >
-                    {user.email}
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[10px] font-bold text-white">
+                      {user.email.charAt(0).toUpperCase()}
+                    </div>
+                    {user.username || user.email.split("@")[0]}
                   </Link>
                   <button
                     onClick={logout}
-                    className="text-sm px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                    className="text-sm px-3 py-1.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     Logout
                   </button>
@@ -88,10 +91,10 @@ export function NavigationHeader() {
           <button
             onClick={() => setMobileSearchOpen((prev) => !prev)}
             aria-label="Toggle search"
-            className="md:hidden p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:scale-105 transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="md:hidden p-2 rounded-lg hover:bg-white/5 hover:scale-105 transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           >
             <svg
-              className="w-5 h-5 text-gray-700 dark:text-gray-300"
+              className="w-5 h-5 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

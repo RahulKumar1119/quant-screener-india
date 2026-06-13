@@ -10,6 +10,7 @@ const BASE_URL = "https://z3d366wlgi.execute-api.ap-south-1.amazonaws.com";
 export interface AuthUser {
   email: string;
   user_id: string;
+  username?: string;
 }
 
 export interface AuthResponse {
@@ -58,11 +59,11 @@ async function parseAuthError(response: Response): Promise<AuthError> {
  *
  * @throws {AuthError} on 409 (email exists), 422 (validation error)
  */
-export async function signup(email: string, password: string): Promise<AuthResponse> {
+export async function signup(email: string, password: string, username?: string): Promise<AuthResponse> {
   const response = await fetch(`${BASE_URL}/api/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, username: username || email.split("@")[0] }),
   });
 
   if (!response.ok) {

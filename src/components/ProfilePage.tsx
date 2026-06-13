@@ -27,9 +27,10 @@ export function ProfilePage() {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              My Profile
+            <h1 className="text-2xl font-bold text-white mb-1">
+              {user.username || user.email.split("@")[0]}
             </h1>
+            <p className="text-sm text-gray-500">{user.email}</p>
           </div>
 
           {/* Profile info */}
