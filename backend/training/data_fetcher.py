@@ -214,97 +214,74 @@ class TrainingDataFetcher:
     # ------------------------------------------------------------------
 
     def fetch_historical_ohlc(self, bse_code: str, days: int = 365) -> pd.DataFrame:
-        """Fetch historical OHLC data from BSE StockPriceCSVDownload API.
+        """Fetch historical OHLC data using yfinance (Yahoo Finance).
+
+        Yahoo Finance works reliably from cloud IPs unlike BSE/NSE direct APIs.
+        Uses NSE symbol with .NS suffix for Indian stocks.
 
         Args:
-            bse_code: BSE scrip code (e.g. '500325' for Reliance).
+            bse_code: BSE scrip code (used to resolve NSE symbol).
             days: Number of calendar days of history. Default 365.
 
         Returns:
             DataFrame with columns: DATE, OPEN, HIGH, LOW, CLOSE, VOLUME
             sorted by date ascending.
         """
-        end_date = date.today()
-        start_date = end_date - timedelta(days=days)
+        try:
+            import yfinance as yf
+        except ImportError:
+            print("[data_fetcher] ERROR: yfinance not installed. Run: pip install yfinance")
+            return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
-        from_str = start_date.strftime("%Y%m%d")
-        to_str = end_date.strftime("%Y%m%d")
+        # Resolve BSE code back to NSE symbol
+        bse_to_symbol = {v: k for k, v in self._symbol_to_bse.items()}
+        symbol = bse_to_symbol.get(bse_code, "")
+        if not symbol:
+            # Try looking it up from the loaded data
+            self.fetch_nse_to_bse_mapping()
+            bse_to_symbol = {v: k for k, v in self._symbol_to_bse.items()}
+            symbol = bse_to_symbol.get(bse_code, "")
 
-        url = (
-            f"{_BSE_API_BASE}/StockPriceCSVDownload/w"
-            f"?Atea=&Ession=&Type=EQ&Scripcode={bse_code}"
-            f"&Fromdate={from_str}&Todate={to_str}"
-        )
+        if not symbol:
+            print(f"[data_fetcher] WARNING: Cannot resolve BSE code {bse_code} to NSE symbol")
+            return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
+
+        # Yahoo Finance uses .NS suffix for NSE stocks
+        yf_symbol = f"{symbol}.NS"
 
         try:
-            resp = self._get(url, timeout=30.0)
-            content = resp.text
+            ticker = yf.Ticker(yf_symbol)
+            df = ticker.history(period=f"{days}d")
 
-            if not content or not content.strip():
-                print(f"[data_fetcher] WARNING: Empty response for BSE code {bse_code}")
+            if df.empty:
+                # Try download method as fallback
+                df = yf.download(yf_symbol, period=f"{days}d", progress=False)
+
+            if df.empty:
                 return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
-            df = pd.read_csv(io.StringIO(content))
-            df.columns = [c.strip() for c in df.columns]
+            # Normalize to our expected format
+            result = pd.DataFrame({
+                "DATE": df.index,
+                "OPEN": df["Open"].values,
+                "HIGH": df["High"].values,
+                "LOW": df["Low"].values,
+                "CLOSE": df["Close"].values,
+                "VOLUME": df["Volume"].values if "Volume" in df.columns else 0,
+            })
 
-            # Map BSE column names to standard format
-            col_map = {}
-            for col in df.columns:
-                col_lower = col.lower()
-                if "date" in col_lower:
-                    col_map[col] = "DATE"
-                elif col_lower in ("open", "open price", "open_price"):
-                    col_map[col] = "OPEN"
-                elif col_lower in ("high", "high price", "high_price"):
-                    col_map[col] = "HIGH"
-                elif col_lower in ("low", "low price", "low_price"):
-                    col_map[col] = "LOW"
-                elif col_lower in ("close", "close price", "close_price"):
-                    col_map[col] = "CLOSE"
-                elif "share" in col_lower or "volume" in col_lower or "no of" in col_lower:
-                    col_map[col] = "VOLUME"
+            result["DATE"] = pd.to_datetime(result["DATE"])
+            result = result.sort_values("DATE").reset_index(drop=True)
+            return result
 
-            df = df.rename(columns=col_map)
-
-            for required_col in ["DATE", "OPEN", "HIGH", "LOW", "CLOSE"]:
-                if required_col not in df.columns:
-                    print(
-                        f"[data_fetcher] WARNING: Missing column {required_col} for BSE code {bse_code}"
-                    )
-                    return pd.DataFrame(
-                        columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]
-                    )
-
-            if "VOLUME" not in df.columns:
-                df["VOLUME"] = 0
-
-            # Parse dates and sort
-            df["DATE"] = pd.to_datetime(df["DATE"], dayfirst=True, errors="coerce")
-            df = df.dropna(subset=["DATE"])
-            df = df.sort_values("DATE").reset_index(drop=True)
-
-            # Convert numeric columns
-            for col in ["OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]:
-                df[col] = (
-                    pd.to_numeric(
-                        df[col].astype(str).str.replace(",", ""), errors="coerce"
-                    )
-                    .fillna(0)
-                )
-
-            return df[["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]].reset_index(drop=True)
-
-        except httpx.HTTPStatusError as exc:
-            print(f"[data_fetcher] HTTP error fetching OHLC for BSE {bse_code}: {exc}")
-            return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
         except Exception as exc:
-            print(f"[data_fetcher] ERROR fetching OHLC for BSE {bse_code}: {exc}")
+            print(f"[data_fetcher] ERROR fetching OHLC for {symbol} via yfinance: {exc}")
             return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
     def fetch_historical_ohlc_by_symbol(
         self, symbol: str, days: int = 365
     ) -> pd.DataFrame:
-        """Fetch historical OHLC using NSE symbol (resolves to BSE code).
+        """Fetch historical OHLC using NSE symbol via yfinance.
 
         Args:
             symbol: NSE equity symbol (e.g. 'RELIANCE').
@@ -313,56 +290,119 @@ class TrainingDataFetcher:
         Returns:
             DataFrame with OHLC data, or empty DataFrame if symbol not found.
         """
-        mapping = self.fetch_nse_to_bse_mapping()
-        bse_code = mapping.get(symbol.upper())
-        if not bse_code:
-            print(f"[data_fetcher] WARNING: No BSE mapping for symbol {symbol}")
+        try:
+            import yfinance as yf
+        except ImportError:
+            print("[data_fetcher] ERROR: yfinance not installed. Run: pip install yfinance")
             return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
-        return self.fetch_historical_ohlc(bse_code, days=days)
+        yf_symbol = f"{symbol.upper()}.NS"
+
+        try:
+            df = yf.download(yf_symbol, period=f"{days}d", progress=False)
+
+            if df.empty:
+                return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
+
+            result = pd.DataFrame({
+                "DATE": df.index,
+                "OPEN": df["Open"].values,
+                "HIGH": df["High"].values,
+                "LOW": df["Low"].values,
+                "CLOSE": df["Close"].values,
+                "VOLUME": df["Volume"].values if "Volume" in df.columns else 0,
+            })
+
+            result["DATE"] = pd.to_datetime(result["DATE"])
+            result = result.sort_values("DATE").reset_index(drop=True)
+            return result
+
+        except Exception as exc:
+            print(f"[data_fetcher] ERROR fetching OHLC for {symbol} via yfinance: {exc}")
+            return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
     def fetch_multiple_ohlc(
         self, symbols: list[str], days: int = 365, delay: float = 0.5
     ) -> dict[str, pd.DataFrame]:
-        """Fetch OHLC for multiple symbols with rate limiting.
+        """Fetch OHLC for multiple symbols using yfinance batch download.
 
         Args:
             symbols: List of NSE symbols.
             days: Number of calendar days of history.
-            delay: Seconds to wait between requests (rate limiting).
+            delay: Seconds between individual requests (used if batch fails).
 
         Returns:
             Dict mapping symbol to DataFrame.
         """
-        mapping = self.fetch_nse_to_bse_mapping()
+        try:
+            import yfinance as yf
+        except ImportError:
+            print("[data_fetcher] ERROR: yfinance not installed. Run: pip install yfinance")
+            return {}
+
         results: dict[str, pd.DataFrame] = {}
 
-        for i, symbol in enumerate(symbols):
-            bse_code = mapping.get(symbol.upper())
-            if not bse_code:
-                print(f"[data_fetcher] [{i+1}/{len(symbols)}] Skipping {symbol} (no BSE mapping)")
-                continue
+        # Process in batches of 50 to avoid overwhelming Yahoo
+        batch_size = 50
+        for batch_start in range(0, len(symbols), batch_size):
+            batch = symbols[batch_start:batch_start + batch_size]
+            yf_symbols = [f"{s.upper()}.NS" for s in batch]
 
-            print(f"[data_fetcher] [{i+1}/{len(symbols)}] Fetching {symbol} (BSE: {bse_code})...")
-            df = self.fetch_historical_ohlc(bse_code, days=days)
+            print(f"[data_fetcher] Fetching batch {batch_start//batch_size + 1}/{(len(symbols)-1)//batch_size + 1} ({len(batch)} stocks)...")
 
-            if not df.empty:
-                results[symbol] = df
-            else:
-                print(f"[data_fetcher] WARNING: No data returned for {symbol}")
+            try:
+                data = yf.download(yf_symbols, period=f"{days}d", progress=False, group_by="ticker", threads=True)
 
-            # Rate limiting to be respectful to BSE API
-            if i < len(symbols) - 1:
-                time.sleep(delay)
+                if data.empty:
+                    print(f"[data_fetcher] WARNING: Empty batch response")
+                    continue
+
+                for symbol, yf_sym in zip(batch, yf_symbols):
+                    try:
+                        if len(batch) == 1:
+                            ticker_data = data
+                        else:
+                            ticker_data = data[yf_sym] if yf_sym in data.columns.get_level_values(0) else pd.DataFrame()
+
+                        if ticker_data.empty or len(ticker_data) < 30:
+                            continue
+
+                        result = pd.DataFrame({
+                            "DATE": ticker_data.index,
+                            "OPEN": ticker_data["Open"].values,
+                            "HIGH": ticker_data["High"].values,
+                            "LOW": ticker_data["Low"].values,
+                            "CLOSE": ticker_data["Close"].values,
+                            "VOLUME": ticker_data["Volume"].values if "Volume" in ticker_data.columns else 0,
+                        })
+                        result["DATE"] = pd.to_datetime(result["DATE"])
+                        result = result.dropna(subset=["CLOSE"])
+                        result = result.sort_values("DATE").reset_index(drop=True)
+
+                        if len(result) >= 30:
+                            results[symbol] = result
+
+                    except Exception:
+                        continue
+
+            except Exception as exc:
+                print(f"[data_fetcher] Batch download failed: {exc}")
+                # Fallback: fetch one by one
+                for symbol in batch:
+                    df = self.fetch_historical_ohlc_by_symbol(symbol, days=days)
+                    if not df.empty and len(df) >= 30:
+                        results[symbol] = df
+                    time.sleep(delay)
+
+            time.sleep(1)  # Pause between batches
 
         print(f"[data_fetcher] Successfully fetched OHLC for {len(results)}/{len(symbols)} symbols.")
         return results
 
     def fetch_sector_proxy_data(self, days: int = 365) -> dict[str, pd.DataFrame]:
-        """Fetch sector proxy data using representative stocks.
+        """Fetch sector proxy data using representative stocks via yfinance.
 
-        Since BSE doesn't directly provide Nifty sector indices, we use
-        representative large-cap stocks as sector proxies:
+        Uses representative large-cap stocks as sector proxies:
         - Banking: HDFCBANK
         - IT: TCS
         - Pharma: SUNPHARMA
@@ -383,7 +423,7 @@ class TrainingDataFetcher:
             "FMCG": "HINDUNILVR",
         }
 
-        print("[data_fetcher] Fetching sector proxy data...")
+        print("[data_fetcher] Fetching sector proxy data via yfinance...")
         results: dict[str, pd.DataFrame] = {}
 
         for sector, symbol in sector_proxies.items():
@@ -393,6 +433,5 @@ class TrainingDataFetcher:
                 print(f"[data_fetcher]   {sector} ({symbol}): {len(df)} rows")
             else:
                 print(f"[data_fetcher]   WARNING: No data for {sector} ({symbol})")
-            time.sleep(0.5)
 
         return results
