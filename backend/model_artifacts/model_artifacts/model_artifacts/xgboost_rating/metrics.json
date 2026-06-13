@@ -1,0 +1,86 @@
+{
+  "model": "xgboost_rating",
+  "trained_at": "2026-06-13T12:09:48.909125+00:00",
+  "training_duration_seconds": 136.4,
+  "data_source": "BSE India API (historical OHLC)",
+  "samples": {
+    "train": 81508,
+    "validation": 20378
+  },
+  "metrics": {
+    "accuracy": 0.4876,
+    "f1_macro": 0.413,
+    "per_class_f1": {
+      "SELL": 0.6639,
+      "HOLD": 0.2985,
+      "BUY": 0.1987,
+      "STRONG BUY": 0.4908
+    },
+    "confusion_matrix": [
+      [
+        5838,
+        987,
+        101,
+        533
+      ],
+      [
+        2724,
+        1350,
+        362,
+        1175
+      ],
+      [
+        930,
+        646,
+        488,
+        1527
+      ],
+      [
+        636,
+        451,
+        369,
+        2261
+      ]
+    ]
+  },
+  "hyperparameters": {
+    "n_estimators": 500,
+    "max_depth": 8,
+    "learning_rate": 0.1
+  },
+  "features": [
+    "return_5d",
+    "return_10d",
+    "return_20d",
+    "return_30d",
+    "return_60d",
+    "momentum_accel",
+    "volatility_10d",
+    "volatility_20d",
+    "vol_ratio_10_20",
+    "volume_ratio",
+    "volume_trend",
+    "volume_spike",
+    "obv_slope",
+    "rsi_14",
+    "rsi_oversold",
+    "rsi_overbought",
+    "macd_histogram",
+    "macd_cross_up",
+    "bb_position",
+    "bb_width",
+    "ma_5_20_cross",
+    "ma_20_50_cross",
+    "ema_ratio",
+    "dist_from_high",
+    "dist_from_low",
+    "atr_normalized",
+    "candle_body_ratio",
+    "trend_strength",
+    "month",
+    "day_of_week",
+    "is_quarter_end",
+    "higher_high_streak",
+    "lower_low_streak"
+  ]
+}

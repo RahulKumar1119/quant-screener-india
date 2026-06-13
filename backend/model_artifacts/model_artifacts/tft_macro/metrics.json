@@ -1,0 +1,55 @@
+{
+  "model": "tft_macro",
+  "trained_at": "2026-06-13T12:31:59.996698+00:00",
+  "training_duration_seconds": 11.6,
+  "data_source": "BSE India API (sector proxy OHLC)",
+  "sectors_used": [
+    "BANK",
+    "IT",
+    "PHARMA",
+    "AUTO",
+    "FMCG"
+  ],
+  "samples": {
+    "train": 220,
+    "validation": 55
+  },
+  "metrics": {
+    "mse": 0.023462,
+    "mae": 0.123841,
+    "r2": 0.4362
+  },
+  "hyperparameters": {
+    "epochs_configured": 100,
+    "epochs_run": 32,
+    "batch_size": 16,
+    "learning_rate": 0.001,
+    "window_size": 30,
+    "hidden_dim": 64,
+    "num_heads": 4,
+    "architecture": "LSTM(input_dim,64)->MultiheadAttention(64,4)->FC(64,32)->FC(32,1)->Sigmoid"
+  },
+  "feature_columns": [
+    "BANK_mom_7d",
+    "BANK_mom_14d",
+    "BANK_mom_30d",
+    "BANK_velocity",
+    "IT_mom_7d",
+    "IT_mom_14d",
+    "IT_mom_30d",
+    "IT_velocity",
+    "PHARMA_mom_7d",
+    "PHARMA_mom_14d",
+    "PHARMA_mom_30d",
+    "PHARMA_velocity",
+    "AUTO_mom_7d",
+    "AUTO_mom_14d",
+    "AUTO_mom_30d",
+    "AUTO_velocity",
+    "FMCG_mom_7d",
+    "FMCG_mom_14d",
+    "FMCG_mom_30d",
+    "FMCG_velocity",
+    "sector_dispersion"
+  ]
+}
