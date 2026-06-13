@@ -431,53 +431,53 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Document expected training time estimates
     - _Requirements: 14.1_
 
-- [ ] 23. User Authentication (Sign-Up / Sign-In)
-  - [ ] 23.1 Create `backend/auth.py` with FastAPI APIRouter
+- [x] 23. User Authentication (Sign-Up / Sign-In)
+  - [x] 23.1 Create `backend/auth.py` with FastAPI APIRouter
     - Implement POST /api/auth/signup: validate email/password, check DynamoDB for existing user, hash password with bcrypt, store in DynamoDB, return JWT
     - Implement POST /api/auth/signin: validate credentials against DynamoDB, verify bcrypt hash, return JWT
     - Implement GET /api/auth/me: validate JWT from Authorization header, return user profile
     - Configure JWT with HS256, 24-hour expiry, JWT_SECRET from environment variable
     - _Requirements: 15.3, 15.4, 15.5, 15.6, 15.10, 15.11, 15.12, 15.13, 15.14_
 
-  - [ ] 23.2 Create DynamoDB Users table CloudFormation template
+  - [x] 23.2 Create DynamoDB Users table CloudFormation template
     - Create `infra/dynamodb-users-table.yaml` with PK: email (String)
     - Include user_id, password_hash, created_at attributes
     - Use on-demand billing mode
     - _Requirements: 15.3, 15.5_
 
-  - [ ] 23.3 Update `backend/app.py` to include auth router
+  - [x] 23.3 Update `backend/app.py` to include auth router
     - Import and include the auth router from `backend/auth.py`
     - Add PyJWT and bcrypt to `backend/requirements.txt`
     - _Requirements: 15.10, 15.11, 15.12_
 
-  - [ ] 23.4 Create `src/api/auth.ts` API client functions
+  - [x] 23.4 Create `src/api/auth.ts` API client functions
     - Implement `signup(email, password)`: POST /api/auth/signup, return token + user
     - Implement `signin(email, password)`: POST /api/auth/signin, return token + user
     - Implement `getMe(token)`: GET /api/auth/me with Authorization header
     - Handle error responses (409, 401, 422) with typed error messages
     - _Requirements: 15.10, 15.11, 15.12_
 
-  - [ ] 23.5 Create `src/hooks/useAuth.ts` auth context and provider
+  - [x] 23.5 Create `src/hooks/useAuth.ts` auth context and provider
     - Create AuthContext with user, token, isAuthenticated, login, logout
     - On mount: read token from localStorage, call getMe() to validate
     - login(): store token in localStorage, set user state
     - logout(): remove from localStorage, clear state, navigate to /
     - _Requirements: 15.7, 15.8, 15.9_
 
-  - [ ] 23.6 Create `src/components/SignUpPage.tsx`
+  - [x] 23.6 Create `src/components/SignUpPage.tsx`
     - Render form with email input, password input, submit button
     - Client-side validation: valid email format, password >= 8 chars
     - On submit: call signup(), on success store token and navigate to /
     - Display inline error messages from backend (409, 422)
     - _Requirements: 15.1, 15.3, 15.15, 15.16_
 
-  - [ ] 23.7 Create `src/components/SignInPage.tsx`
+  - [x] 23.7 Create `src/components/SignInPage.tsx`
     - Render form with email input, password input, submit button
     - On submit: call signin(), on success store token and navigate to /
     - Display inline error messages from backend (401)
     - _Requirements: 15.2, 15.4, 15.14, 15.16_
 
-  - [ ] 23.8 Update `src/App.tsx` routes and NavigationHeader
+  - [x] 23.8 Update `src/App.tsx` routes and NavigationHeader
     - Add /signup and /signin routes
     - Wrap app in AuthProvider
     - Update NavigationHeader to show user email + Logout when authenticated, or Sign In / Sign Up links when not
