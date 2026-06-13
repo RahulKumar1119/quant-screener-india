@@ -2,7 +2,7 @@ fastapi>=0.100.0,<1.0.0
 uvicorn>=0.20.0,<1.0.0
 mangum>=0.17.0,<1.0.0
 httpx>=0.23.0,<1.0.0
-jugaad-data>=0.26,<1.0.0
+# Data fetched from BSE India API (api.bseindia.com) using httpx
 pandas>=1.5.0,<3.0.0
 numpy>=1.23.0,<2.0.0
 cachetools>=5.3.0,<6.0.0

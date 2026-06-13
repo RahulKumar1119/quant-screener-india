@@ -8,3 +8,6 @@ dist/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Data files
+nse_stocks_1000cr_plus.csv

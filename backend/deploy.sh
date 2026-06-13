@@ -4,7 +4,7 @@
 #
 # Creates a lightweight Lambda deployment zip (<250MB) containing:
 #   - FastAPI application + Mangum adapter
-#   - NSE data fetching (jugaad-data, httpx)
+#   - NSE data fetching (httpx (BSE India API))
 #   - DynamoDB caching layer
 #   - ML model wrappers (boto3 → SageMaker endpoints)
 #   - No heavy ML frameworks (TensorFlow, PyTorch, XGBoost run on SageMaker)

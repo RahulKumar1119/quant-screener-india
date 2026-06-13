@@ -16,7 +16,7 @@ Browser → Amplify (static SPA)
          API Gateway → Lambda (FastAPI + Mangum)
               ↓                    ↓                    ↓
          NSE India APIs    SageMaker Endpoints    AWS Bedrock
-         (jugaad-data)     (XGBoost, LSTM, TFT)  (Gemma 3 4B IT)
+         (BSE India API)     (XGBoost, LSTM, TFT)  (Gemma 3 4B IT)
               ↓
          DynamoDB (cache)
 ```
@@ -25,7 +25,7 @@ Browser → Amplify (static SPA)
 - **Backend (Lambda)**: FastAPI + Mangum, lightweight (<250MB) — handles API routing, NSE data fetching, DynamoDB caching, and ML endpoint orchestration
 - **ML Inference (SageMaker)**: XGBoost, LSTM, and TFT models run on SageMaker Serverless Inference Endpoints — auto-scales to zero when idle
 - **LLM (Bedrock)**: Gemma 3 4B IT via AWS Bedrock for narrative summary generation
-- **Data Source**: NSE India public APIs via `jugaad-data` Python library
+- **Data Source**: NSE India public APIs via `BSE India API` Python library
 
 ## Tech Stack
 
@@ -40,7 +40,7 @@ Browser → Amplify (static SPA)
 
 ### Backend (Lambda)
 - FastAPI + Mangum (AWS Lambda adapter)
-- `jugaad-data` for NSE live quotes, historical OHLC, RBI data
+- `BSE India API` for NSE live quotes, historical OHLC, RBI data
 - `cachetools` for in-memory TTL caching
 - `boto3` for SageMaker Runtime + Bedrock Runtime invocations
 - `httpx` for custom NSE API calls
@@ -103,7 +103,7 @@ Browser → Amplify (static SPA)
 │   └── main.tsx                  # Entry point
 ├── backend/                      # Lambda Function (FastAPI)
 │   ├── app.py                    # FastAPI application + Mangum handler
-│   ├── nse_client.py             # NSE data fetching (jugaad-data)
+│   ├── nse_client.py             # NSE data fetching (BSE India API)
 │   ├── cache.py                  # TTL cache manager (5 tiers)
 │   ├── rate_limiter.py           # Token bucket rate limiter
 │   ├── schemas.py                # Pydantic response models

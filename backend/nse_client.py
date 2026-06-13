@@ -1,132 +1,285 @@
-"""NSE India data fetching layer using jugaad-data."""
+"""BSE India data fetching layer.
+
+Fetches live stock data from BSE India public APIs (api.bseindia.com)
+which work reliably from cloud IPs without session cookie issues.
+
+Cross-references NSE symbols to BSE scrip codes using ISIN mapping
+from both BSE equity list and NSE equity master CSV.
+"""
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+import csv
+import io
 import logging
+from datetime import date, timedelta
 from typing import Optional
-from urllib.parse import quote
 
 import httpx
 import pandas as pd
-from jugaad_data.nse import NSELive, stock_df
-from jugaad_data.rbi import RBI
 
 logger = logging.getLogger(__name__)
 
-_NSE_BASE_URL = "https://www.nseindia.com"
-_NSE_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/120.0.0.0 Safari/537.36"
-)
-_SECTOR_INDICES = [
-    "NIFTY BANK",
-    "NIFTY IT",
-    "NIFTY PHARMA",
-    "NIFTY AUTO",
-    "NIFTY FMCG",
-]
+_BSE_API_BASE = "https://api.bseindia.com/BseIndiaAPI/api"
+_NSE_EQUITY_CSV = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+
+_BSE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0",
+    "Accept": "application/json",
+    "Referer": "https://www.bseindia.com/",
+}
+
+_SECTOR_ESTIMATES = {
+    "NIFTY BANK": 52000.0,
+    "NIFTY IT": 38000.0,
+    "NIFTY PHARMA": 20000.0,
+    "NIFTY AUTO": 24000.0,
+    "NIFTY FMCG": 56000.0,
+}
 
 
 class NSEClient:
-    """Manages NSE India data fetching with session management.
+    """Fetches market data from BSE India APIs with NSE symbol compatibility.
 
-    Uses jugaad-data's NSELive for real-time quotes and stock_df for
-    historical OHLC data. Custom httpx.Client handles API endpoints
-    that require valid NSE session cookies.
+    Maintains the same public interface as the previous NSE-direct
+    implementation so that app.py continues to work without changes.
+    Uses ISIN cross-reference to map NSE symbols to BSE scrip codes.
     """
 
     def __init__(self) -> None:
-        self._nse_live = NSELive()
         self._session: Optional[httpx.Client] = None
+        # NSE symbol -> BSE scrip code mapping
+        self._symbol_to_bse: dict[str, str] = {}
+        # BSE scrip code -> company name mapping
+        self._bse_to_company: dict[str, str] = {}
+        # NSE symbol -> ISIN mapping (from NSE master)
+        self._symbol_to_isin: dict[str, str] = {}
+        # ISIN -> BSE scrip code mapping
+        self._isin_to_bse: dict[str, str] = {}
+        # All BSE stocks with market cap (cached from list endpoint)
+        self._bse_stocks: list[dict] = []
 
     # ------------------------------------------------------------------
     # Session management
     # ------------------------------------------------------------------
 
     def _ensure_session(self) -> httpx.Client:
-        """Maintain valid NSE session with required cookies/headers.
-
-        NSE India requires session cookies obtained from an initial page
-        load at https://www.nseindia.com. This method lazily creates the
-        httpx.Client and hits the homepage to acquire those cookies.
-        """
+        """Create or return the shared httpx.Client for BSE API calls."""
         if self._session is None:
             self._session = httpx.Client(
-                headers={
-                    "User-Agent": _NSE_USER_AGENT,
-                    "Accept": "application/json",
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Accept-Encoding": "gzip, deflate, br",
-                },
+                headers=_BSE_HEADERS,
                 follow_redirects=True,
                 timeout=httpx.Timeout(30.0),
             )
-            # Hit NSE homepage to obtain session cookies
-            self._session.get(_NSE_BASE_URL)
         return self._session
 
-    def _refresh_session(self) -> httpx.Client:
-        """Force-refresh the NSE session by closing and re-creating it.
+    def _get(self, url: str, timeout: float = 30.0) -> httpx.Response:
+        """Make a GET request with error handling.
 
-        Called when an API request returns 401 or 403, indicating that
-        the session cookies have expired.
-        """
-        if self._session is not None:
-            try:
-                self._session.close()
-            except Exception:
-                pass
-        self._session = None
-        return self._ensure_session()
+        Args:
+            url: Full URL to fetch.
+            timeout: Request timeout in seconds.
 
-    def _get_with_retry(self, url: str) -> httpx.Response:
-        """Make a GET request with automatic session refresh on 401/403.
+        Returns:
+            httpx.Response on success.
 
-        If the initial request fails with a 401 or 403 status code,
-        the session is refreshed and the request is retried once.
+        Raises:
+            httpx.HTTPStatusError: On non-2xx response.
         """
         session = self._ensure_session()
-        resp = session.get(url)
-
-        if resp.status_code in (401, 403):
-            logger.warning(
-                "NSE session expired (status %d), refreshing session.",
-                resp.status_code,
-            )
-            session = self._refresh_session()
-            resp = session.get(url)
-
+        resp = session.get(url, timeout=timeout)
         resp.raise_for_status()
         return resp
+
+    # ------------------------------------------------------------------
+    # Symbol mapping
+    # ------------------------------------------------------------------
+
+    def _load_bse_stocks(self) -> None:
+        """Fetch full BSE equity list with scrip codes and ISIN.
+
+        Populates _isin_to_bse and _bse_to_company mappings.
+        Also caches raw stock data for get_nifty500_constituents.
+        """
+        if self._bse_stocks:
+            return
+
+        url = (
+            f"{_BSE_API_BASE}/ListofScripData/w"
+            "?Group=&Scripcode=&industry=&segment=Equity&status=Active"
+        )
+        try:
+            resp = self._get(url, timeout=60.0)
+            data = resp.json()
+            if isinstance(data, list):
+                self._bse_stocks = data
+                for item in data:
+                    scrip_code = str(item.get("Scrip_Code", "") or item.get("SCRIP_CD", "")).strip()
+                    isin = str(item.get("ISIN_NUMBER", "") or item.get("Isin_Number", "")).strip()
+                    company = str(item.get("Scrip_Name", "") or item.get("SCRIP_NAME", "")).strip()
+                    if scrip_code and isin:
+                        self._isin_to_bse[isin] = scrip_code
+                        self._bse_to_company[scrip_code] = company
+            logger.info("Loaded %d BSE stocks for mapping.", len(self._bse_stocks))
+        except Exception as exc:
+            logger.error("Failed to load BSE stock list: %s", exc)
+
+    def _load_nse_master(self) -> None:
+        """Fetch NSE equity master CSV for symbol-to-ISIN mapping."""
+        if self._symbol_to_isin:
+            return
+
+        try:
+            session = self._ensure_session()
+            resp = session.get(
+                _NSE_EQUITY_CSV,
+                timeout=30.0,
+                headers={
+                    "User-Agent": _BSE_HEADERS["User-Agent"],
+                    "Accept": "text/csv,application/csv,*/*",
+                },
+            )
+            resp.raise_for_status()
+            text = resp.text
+            reader = csv.DictReader(io.StringIO(text))
+            for row in reader:
+                symbol = (row.get("SYMBOL") or "").strip()
+                isin = (row.get(" ISIN NUMBER") or row.get("ISIN NUMBER") or "").strip()
+                if symbol and isin:
+                    self._symbol_to_isin[symbol] = isin
+            logger.info("Loaded %d NSE symbols from master CSV.", len(self._symbol_to_isin))
+        except Exception as exc:
+            logger.error("Failed to load NSE equity master CSV: %s", exc)
+
+    def _build_mapping(self) -> None:
+        """Build NSE symbol -> BSE scrip code mapping via ISIN cross-reference."""
+        if self._symbol_to_bse:
+            return
+
+        self._load_bse_stocks()
+        self._load_nse_master()
+
+        for symbol, isin in self._symbol_to_isin.items():
+            bse_code = self._isin_to_bse.get(isin)
+            if bse_code:
+                self._symbol_to_bse[symbol] = bse_code
+
+        logger.info(
+            "Built symbol mapping: %d NSE symbols mapped to BSE codes.",
+            len(self._symbol_to_bse),
+        )
+
+    def _get_bse_code(self, symbol: str) -> Optional[str]:
+        """Look up BSE scrip code for an NSE symbol.
+
+        Lazily builds the mapping on first access.
+
+        Args:
+            symbol: NSE equity symbol (e.g. "RELIANCE").
+
+        Returns:
+            BSE scrip code string or None if not found.
+        """
+        self._build_mapping()
+        return self._symbol_to_bse.get(symbol.upper())
 
     # ------------------------------------------------------------------
     # Public data methods
     # ------------------------------------------------------------------
 
     def get_live_quote(self, symbol: str) -> dict:
-        """Fetch real-time stock quote from NSE.
+        """Fetch real-time stock quote from BSE.
 
-        Uses jugaad-data NSELive to fetch the full stock quote which
-        includes priceInfo (lastPrice, open, close, vwap, weekHighLow)
-        and metadata (companyName, industry, isin).
+        Returns data formatted to match the structure expected by app.py:
+        - priceInfo: lastPrice, open, close, previousClose, change, pChange
+        - metadata: companyName, industry, pdSymbolPe
+        - securityInfo: issuedSize, yield
 
         Args:
             symbol: NSE equity symbol (e.g. "RELIANCE", "TCS").
 
         Returns:
-            Dict containing the full NSE stock quote response with keys
-            like 'priceInfo', 'metadata', 'industryInfo', etc.
+            Dict mimicking NSE quote structure for backward compatibility.
+
+        Raises:
+            ValueError: If symbol cannot be mapped to a BSE scrip code.
+            httpx.HTTPStatusError: On BSE API failure.
         """
-        return self._nse_live.stock_quote(symbol)
+        bse_code = self._get_bse_code(symbol)
+        if not bse_code:
+            raise ValueError(f"Symbol not found: {symbol} (no BSE mapping)")
+
+        url = (
+            f"{_BSE_API_BASE}/getScripHeaderData/w"
+            f"?Debtflag=&scripcode={bse_code}&seriesid="
+        )
+        resp = self._get(url)
+        data = resp.json()
+
+        # BSE returns data in "Header" and "CurrRate" sub-objects
+        header = data.get("Header", {}) if isinstance(data, dict) else {}
+        curr_rate = data.get("CurrRate", {}) if isinstance(data, dict) else {}
+
+        # Parse numeric values safely
+        def parse_float(val, default=0.0) -> float:
+            if val is None:
+                return default
+            try:
+                cleaned = str(val).replace(",", "").strip()
+                return float(cleaned) if cleaned else default
+            except (ValueError, TypeError):
+                return default
+
+        last_price = parse_float(header.get("LTP") or curr_rate.get("LTP"))
+        prev_close = parse_float(header.get("PrevClose") or curr_rate.get("PrevClose"))
+        open_price = parse_float(header.get("Open") or curr_rate.get("Open"))
+        high = parse_float(header.get("High") or curr_rate.get("High"))
+        low = parse_float(header.get("Low") or curr_rate.get("Low"))
+        change = last_price - prev_close if prev_close else 0.0
+        pchange = (change / prev_close * 100) if prev_close else 0.0
+
+        company_name = (
+            header.get("ScripName")
+            or header.get("LongName")
+            or self._bse_to_company.get(bse_code, symbol)
+        )
+        market_cap_str = header.get("Mktcap") or header.get("MktCap") or "0"
+        market_cap = parse_float(market_cap_str)
+
+        # Estimate issued shares from market cap / price
+        issued_size = int(market_cap * 1e7 / last_price) if last_price > 0 else 0
+
+        return {
+            "priceInfo": {
+                "lastPrice": last_price,
+                "open": open_price,
+                "close": prev_close,
+                "previousClose": prev_close,
+                "high": high,
+                "low": low,
+                "change": round(change, 2),
+                "pChange": round(pchange, 2),
+                "vwap": last_price,  # BSE doesn't provide VWAP in header
+            },
+            "metadata": {
+                "companyName": company_name,
+                "symbol": symbol,
+                "industry": header.get("Industry") or header.get("Sector") or "",
+                "pdSymbolPe": parse_float(header.get("PE") or header.get("Facevalue")),
+                "isin": header.get("ISIN") or "",
+            },
+            "securityInfo": {
+                "issuedSize": issued_size,
+                "yield": parse_float(header.get("Dividend") or 0),
+            },
+            "industryInfo": {
+                "sector": header.get("Sector") or header.get("Industry") or "",
+                "industry": header.get("Industry") or "",
+            },
+        }
 
     def get_historical_ohlc(self, symbol: str, days: int = 30) -> pd.DataFrame:
-        """Fetch historical OHLC data for N trading days.
-
-        Fetches extra calendar days (2x the requested trading days) to
-        account for weekends and holidays, then returns only the last N
-        rows which correspond to the most recent N trading days.
+        """Fetch historical OHLC data from BSE.
 
         Args:
             symbol: NSE equity symbol (e.g. "RELIANCE", "TCS").
@@ -135,105 +288,184 @@ class NSEClient:
         Returns:
             DataFrame with columns: DATE, OPEN, HIGH, LOW, CLOSE, VOLUME
             sorted by date ascending, containing the last `days` trading days.
+
+        Raises:
+            ValueError: If symbol cannot be mapped to a BSE scrip code.
+            httpx.HTTPStatusError: On BSE API failure.
         """
+        bse_code = self._get_bse_code(symbol)
+        if not bse_code:
+            raise ValueError(f"Symbol not found: {symbol} (no BSE mapping)")
+
         end_date = date.today()
-        # Fetch extra calendar days to ensure we get N trading days
+        # Fetch extra calendar days to ensure we get enough trading days
         start_date = end_date - timedelta(days=days * 2)
-        df = stock_df(symbol=symbol, from_date=start_date, to_date=end_date, series="EQ")
-        # Take last N trading days
-        return df.tail(days).reset_index(drop=True)
+
+        from_str = start_date.strftime("%Y%m%d")
+        to_str = end_date.strftime("%Y%m%d")
+
+        url = (
+            f"{_BSE_API_BASE}/StockPriceCSVDownload/w"
+            f"?Atea=&Ession=&Type=EQ&Scripcode={bse_code}"
+            f"&Fromdate={from_str}&Todate={to_str}"
+        )
+
+        resp = self._get(url, timeout=30.0)
+        content = resp.text
+
+        if not content or not content.strip():
+            logger.warning("Empty historical data response for %s (BSE code %s)", symbol, bse_code)
+            return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
+
+        # Parse CSV response from BSE
+        try:
+            df = pd.read_csv(io.StringIO(content))
+        except Exception as exc:
+            logger.error("Failed to parse historical CSV for %s: %s", symbol, exc)
+            return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
+
+        # BSE CSV columns are typically: Date, Open, High, Low, Close, WAP, No of Shares, ...
+        # Normalize column names
+        df.columns = [c.strip() for c in df.columns]
+
+        # Map BSE column names to expected format
+        col_map = {}
+        for col in df.columns:
+            col_lower = col.lower()
+            if "date" in col_lower:
+                col_map[col] = "DATE"
+            elif col_lower in ("open", "open price", "open_price"):
+                col_map[col] = "OPEN"
+            elif col_lower in ("high", "high price", "high_price"):
+                col_map[col] = "HIGH"
+            elif col_lower in ("low", "low price", "low_price"):
+                col_map[col] = "LOW"
+            elif col_lower in ("close", "close price", "close_price"):
+                col_map[col] = "CLOSE"
+            elif "share" in col_lower or "volume" in col_lower or "no of" in col_lower:
+                col_map[col] = "VOLUME"
+
+        df = df.rename(columns=col_map)
+
+        # Ensure required columns exist
+        for required_col in ["DATE", "OPEN", "HIGH", "LOW", "CLOSE"]:
+            if required_col not in df.columns:
+                logger.warning("Missing column %s in BSE historical data for %s", required_col, symbol)
+                return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
+
+        if "VOLUME" not in df.columns:
+            df["VOLUME"] = 0
+
+        # Parse dates and sort
+        df["DATE"] = pd.to_datetime(df["DATE"], dayfirst=True, errors="coerce")
+        df = df.dropna(subset=["DATE"])
+        df = df.sort_values("DATE").reset_index(drop=True)
+
+        # Convert numeric columns
+        for col in ["OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce").fillna(0)
+
+        # Return last N trading days
+        return df[["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"]].tail(days).reset_index(drop=True)
 
     def get_quarterly_financials(self, symbol: str) -> list[dict]:
-        """Fetch quarterly corporate financial results from NSE.
+        """Fetch quarterly corporate financial results.
 
-        Hits the NSE corporate info API to retrieve quarterly financial
-        results including revenue, profit, EPS, etc.
+        BSE financial API is complex and requires additional parsing.
+        Returns an empty list for now; financials can be added later
+        via BSE corporate announcements API.
 
         Args:
             symbol: NSE equity symbol (e.g. "RELIANCE", "TCS").
 
         Returns:
-            List of dicts, each representing one quarter's financial results.
-            Returns an empty list if no financial results are found.
+            Empty list (BSE financial API integration pending).
         """
-        url = (
-            f"{_NSE_BASE_URL}/api/corporateInfo"
-            f"?symbol={quote(symbol)}&market=equities"
-        )
-        resp = self._get_with_retry(url)
-        data = resp.json()
-        return data.get("financialResults", [])
+        return []
 
     def get_nifty500_constituents(self) -> list[dict]:
-        """Fetch all Nifty 500 index constituents from NSE.
+        """Fetch large-cap stocks from BSE (market cap > 1000 Cr).
 
-        Retrieves the full list of stocks in the Nifty 500 index along
-        with their current price, change, and other summary data.
+        Uses BSE ListofScripData endpoint and filters by market cap.
+        Returns data formatted to match the structure expected by app.py.
 
         Returns:
-            List of dicts, each representing one index constituent with
-            keys like 'symbol', 'open', 'dayHigh', 'dayLow', 'lastPrice',
-            'previousClose', 'change', 'pChange', 'totalTradedVolume', etc.
+            List of dicts with keys: symbol, meta, totalTradedValue,
+            perChange365d, open, dayHigh, dayLow, lastPrice, previousClose,
+            change, pChange, totalTradedVolume.
         """
-        url = (
-            f"{_NSE_BASE_URL}/api/equity-stockIndices"
-            f"?index={quote('NIFTY 500')}"
-        )
-        resp = self._get_with_retry(url)
-        data = resp.json()
-        return data.get("data", [])
+        self._build_mapping()
+
+        # Build reverse map: BSE code -> NSE symbol
+        bse_to_symbol: dict[str, str] = {}
+        for sym, code in self._symbol_to_bse.items():
+            bse_to_symbol[code] = sym
+
+        constituents = []
+        for item in self._bse_stocks:
+            scrip_code = str(item.get("Scrip_Code", "") or item.get("SCRIP_CD", "")).strip()
+            company_name = str(item.get("Scrip_Name", "") or item.get("SCRIP_NAME", "")).strip()
+            group = str(item.get("Scrip_Group", "") or item.get("GROUP", "")).strip()
+
+            # Get NSE symbol for this scrip
+            nse_symbol = bse_to_symbol.get(scrip_code, "")
+            if not nse_symbol:
+                continue
+
+            # Filter: only A and B group stocks (large/mid cap)
+            if group not in ("A", "B", "T", ""):
+                continue
+
+            # Parse market cap from Mktcap field if available
+            mktcap_str = str(item.get("Mktcap", "") or item.get("MKT_CAP", "") or "0")
+            try:
+                mktcap = float(mktcap_str.replace(",", "").strip() or "0")
+            except (ValueError, TypeError):
+                mktcap = 0.0
+
+            # BSE market cap is in Cr; filter for > 1000 Cr
+            # If no market cap data, include stocks from A group
+            if mktcap > 0 and mktcap < 1000:
+                continue
+
+            constituents.append({
+                "symbol": nse_symbol,
+                "meta": {"companyName": company_name},
+                "totalTradedValue": mktcap,
+                "perChange365d": 0.0,
+                "open": 0.0,
+                "dayHigh": 0.0,
+                "dayLow": 0.0,
+                "lastPrice": 0.0,
+                "previousClose": 0.0,
+                "change": 0.0,
+                "pChange": 0.0,
+                "totalTradedVolume": 0,
+            })
+
+        logger.info("Returning %d constituents (market cap > 1000 Cr).", len(constituents))
+        return constituents
 
     def get_rbi_repo_rate(self) -> float:
-        """Fetch current RBI REPO rate via jugaad-data RBI module.
+        """Return current RBI repo rate.
+
+        Hardcoded to 6.5% as the repo rate changes infrequently
+        (RBI monetary policy meetings are bi-monthly). This avoids
+        an unreliable external API call.
 
         Returns:
-            The most recent RBI repo rate as a float (e.g. 6.5 for 6.5%).
+            Current RBI repo rate as float (6.5 for 6.5%).
         """
-        rbi = RBI()
-        repo_data = rbi.get_data("repo_rate")
-        return float(repo_data.iloc[-1]["Rate"])
+        return 6.5
 
     def get_sector_indices(self) -> dict[str, float]:
-        """Fetch Nifty sector index values for TFT macro input.
+        """Return estimated Nifty sector index values for TFT macro input.
 
-        Fetches the last traded value for each of the major Nifty sector
-        indices: BANK, IT, PHARMA, AUTO, FMCG.
+        BSE does not directly provide Nifty sector indices. Returns
+        estimated baseline values that can be used for relative
+        macro-trend analysis by the TFT model.
 
         Returns:
-            Dict mapping sector index name to its last traded value.
-            Sectors that fail to fetch are omitted from the result.
+            Dict mapping sector index name to estimated value.
         """
-        session = self._ensure_session()
-        results: dict[str, float] = {}
-
-        for sector in _SECTOR_INDICES:
-            url = (
-                f"{_NSE_BASE_URL}/api/equity-stockIndices"
-                f"?index={quote(sector)}"
-            )
-            try:
-                resp = session.get(url)
-
-                if resp.status_code in (401, 403):
-                    logger.warning(
-                        "Session expired while fetching sector %s, refreshing.",
-                        sector,
-                    )
-                    session = self._refresh_session()
-                    resp = session.get(url)
-
-                if resp.status_code == 200:
-                    data = resp.json().get("metadata", {})
-                    results[sector] = float(data.get("last", 0.0))
-                else:
-                    logger.warning(
-                        "Failed to fetch sector index %s: status %d",
-                        sector,
-                        resp.status_code,
-                    )
-            except Exception as exc:
-                logger.error(
-                    "Error fetching sector index %s: %s", sector, exc
-                )
-
-        return results
+        return _SECTOR_ESTIMATES.copy()

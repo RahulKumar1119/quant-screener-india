@@ -2,7 +2,7 @@
 
 ## Overview
 
-An AI-powered Financial Stock Screening and Analytics Platform focused on the Indian Stock Market (NSE). The platform provides intelligent stock analysis through four ML models (XGBoost, LSTM, TFT, Gemma 3 4B IT via AWS Bedrock), interactive Recharts and TradingView Lightweight Charts visualizations, TanStack Table financial data grids, and a custom text-based query screener. Built as a static SPA (React 19 + Rsbuild + Tailwind CSS) consuming a FastAPI backend that fetches real-time data from NSE India via the `jugaad-data` Python library, targeting deployment on AWS Amplify with full dark/light theme support and Indian localization (₹, Crores, Lakhs, weekend-skipping date axes).
+An AI-powered Financial Stock Screening and Analytics Platform focused on the Indian Stock Market (NSE). The platform provides intelligent stock analysis through four ML models (XGBoost, LSTM, TFT, Gemma 3 4B IT via AWS Bedrock), interactive Recharts and TradingView Lightweight Charts visualizations, TanStack Table financial data grids, and a custom text-based query screener. Built as a static SPA (React 19 + Rsbuild + Tailwind CSS) consuming a FastAPI backend that fetches real-time data from NSE India via BSE India public APIs, targeting deployment on AWS Amplify with full dark/light theme support and Indian localization (₹, Crores, Lakhs, weekend-skipping date axes).
 
 ## Architecture
 
@@ -23,7 +23,7 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │  │  FastAPI Backend (localhost:8000) — Data Aggregation Proxy         │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────┐  │  │
 │  │  │ NSE Client  │  │ Cache Layer │  │ ML Inference Pipeline     │  │  │
-│  │  │ (jugaad-data│  │ (TTL-based) │  │ XGBoost│LSTM│TFT│Gemma   │  │  │
+│  │  │ (BSE India API│  │ (TTL-based) │  │ XGBoost│LSTM│TFT│Gemma   │  │  │
 │  │  │  + httpx)   │  │ (cachetools)│  │ (pre-trained artifacts)  │  │  │
 │  │  └──────┬──────┘  └─────────────┘  └──────────────────────────┘  │  │
 │  │         │                                                          │  │
@@ -46,7 +46,7 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 
 - **Frontend**: React 19 SPA built with Rsbuild (Rspack), styled with Tailwind CSS, served as static files.
 - **Backend**: FastAPI data aggregation proxy that fetches live data from NSE India, applies caching, rate limiting, and runs ML inference on real data. No database required.
-- **Data Source**: NSE India public APIs accessed via `jugaad-data` library with session cookie management.
+- **Data Source**: NSE India public APIs accessed via `BSE India API` library with session cookie management.
 - **Communication**: RESTful JSON over HTTP. Frontend fetches from `localhost:8000` during development.
 - **Deployment**: Frontend `dist/` folder deployed to AWS Amplify. Backend runs as a separate service.
 
@@ -157,13 +157,13 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 
 ### nse_client.py — Core Data Access
 
-The NSE client manages all interactions with NSE India APIs through `jugaad-data`:
+The NSE client manages all interactions with NSE India APIs through `BSE India API`:
 
 ```python
 # backend/nse_client.py
 
-from jugaad_data.nse import NSELive, stock_df
-from jugaad_data.rbi import RBI
+from bse_api.nse import NSELive, stock_df
+from bse_api.rbi import RBI
 from datetime import date, timedelta
 import httpx
 import pandas as pd
@@ -228,7 +228,7 @@ class NSEClient:
         return resp.json().get("data", [])
 
     def get_rbi_repo_rate(self) -> float:
-        """Fetch current RBI REPO rate via jugaad-data RBI module."""
+        """Fetch current RBI REPO rate via BSE India API RBI module."""
         rbi = RBI()
         repo_data = rbi.get_data("repo_rate")
         return float(repo_data.iloc[-1]["Rate"])
@@ -1368,7 +1368,7 @@ For any cache entry with a configured TTL, a lookup performed after the TTL has 
 
 ### Overview
 
-The training pipeline fetches real historical data from NSE India via `jugaad-data` and trains three ML models locally. Training scripts live in `backend/training/` and produce model artifacts consumed by the inference wrappers in `backend/ml_models/`.
+The training pipeline fetches real historical data from NSE India via `BSE India API` and trains three ML models locally. Training scripts live in `backend/training/` and produce model artifacts consumed by the inference wrappers in `backend/ml_models/`.
 
 ### Training Architecture
 
@@ -1387,7 +1387,7 @@ backend/training/
 ### Data Flow
 
 ```
-NSE India APIs (via jugaad-data)
+NSE India APIs (via BSE India API)
     │
     ├── Quarterly Financials (Nifty 500) → XGBoost Training
     │       ↓
@@ -1480,7 +1480,7 @@ model.compile(optimizer="adam", loss="mse", metrics=["mae"])
 ### TFT Training Details
 
 **Data Source**: 
-- RBI REPO rate history (via jugaad-data RBI module)
+- RBI REPO rate history (via BSE India API RBI module)
 - Nifty sector index historical values (BANK, IT, PHARMA, AUTO, FMCG) via NSE API
 
 **Feature Engineering**:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full-stack implementation of an AI-powered Financial Stock Screening platform consuming real-time NSE India data. The backend is a FastAPI data aggregation proxy using `jugaad-data` for live NSE feeds, `cachetools` for TTL caching, and pre-trained ML model wrappers (XGBoost, LSTM, TFT, Gemma). The frontend is a React 19 SPA built with Rsbuild, Tailwind CSS, Recharts, TradingView Lightweight Charts, and TanStack Table with Indian localization and dark/light theme support.
+Full-stack implementation of an AI-powered Financial Stock Screening platform consuming real-time NSE India data. The backend is a FastAPI data aggregation proxy using `BSE India API` for live NSE feeds, `cachetools` for TTL caching, and pre-trained ML model wrappers (XGBoost, LSTM, TFT, Gemma). The frontend is a React 19 SPA built with Rsbuild, Tailwind CSS, Recharts, TradingView Lightweight Charts, and TanStack Table with Indian localization and dark/light theme support.
 
 ## Tasks
 
@@ -15,8 +15,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Create `src/main.tsx` entry point rendering `<App />` into `#root`
     - _Requirements: 10.1, 10.3, 10.4, 10.5, 10.6_
 
-  - [x] 1.2 Initialize backend project with FastAPI, jugaad-data, and ML dependencies
-    - Create `backend/requirements.txt` with: fastapi, uvicorn, jugaad-data, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic, boto3
+  - [x] 1.2 Initialize backend project with FastAPI, BSE India API, and ML dependencies
+    - Create `backend/requirements.txt` with: fastapi, uvicorn, BSE India API, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic, boto3
     - Create `backend/` directory structure: `app.py`, `nse_client.py`, `cache.py`, `rate_limiter.py`, `schemas.py`, `ml_models/__init__.py`
     - Create `backend/model_artifacts/` directory structure with subdirectories (xgboost_rating/, lstm_price/, tft_macro/) and `.gitkeep` files
     - _Requirements: 9.10, 9.18_
@@ -25,10 +25,10 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
   - [x] 2.1 Implement `backend/nse_client.py` with NSELive integration
     - Create `NSEClient` class with `_ensure_session()` method for NSE cookie management
     - Implement `get_live_quote(symbol)` using `NSELive().stock_quote(symbol)` returning priceInfo and metadata
-    - Implement `get_historical_ohlc(symbol, days=30)` using `stock_df()` from jugaad-data
+    - Implement `get_historical_ohlc(symbol, days=30)` using `stock_df()` from BSE India API
     - Implement `get_quarterly_financials(symbol)` fetching from NSE corporate info API
     - Implement `get_nifty500_constituents()` fetching from equity-stockIndices API
-    - Implement `get_rbi_repo_rate()` using jugaad-data RBI module
+    - Implement `get_rbi_repo_rate()` using BSE India API RBI module
     - Implement `get_sector_indices()` fetching Nifty sector index values
     - Include session refresh logic on 401/403 responses
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.7, 9.8_
@@ -367,7 +367,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 
 - [ ] 22. ML Model Training Pipeline
   - [ ] 22.1 Create `backend/training/requirements.txt` with training dependencies
-    - Include: scikit-learn, tensorflow, torch, xgboost, jugaad-data, pandas, numpy, matplotlib, argparse
+    - Include: scikit-learn, tensorflow, torch, xgboost, BSE India API, pandas, numpy, matplotlib, argparse
     - _Requirements: 14.8_
 
   - [ ] 22.2 Implement `backend/training/data_fetcher.py` shared data fetching utilities
@@ -489,7 +489,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - Each task references specific requirements for traceability
 - Checkpoints ensure incremental validation
 - Property tests validate universal correctness properties from the design document (13 properties total)
-- The backend uses NO mock data — all data comes from live NSE India APIs via jugaad-data
+- The backend uses NO mock data — all data comes from live NSE India APIs via BSE India API
 - ML model artifacts are produced by training scripts in `backend/training/` and saved to `backend/model_artifacts/{model_name}/`
 - Gemma 3 4B IT runs via AWS Bedrock (requires AWS credentials with Bedrock access)
 - Frontend handles nullable ML fields gracefully — partial responses show available data with "unavailable" placeholders
