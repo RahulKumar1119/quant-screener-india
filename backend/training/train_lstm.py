@@ -183,11 +183,20 @@ def main() -> None:
     print(f"  Validation MAE:  {val_mae:.6f}")
     print(f"  Validation MAPE: {mape:.2f}%")
 
-    # Save model (Keras native format)
+    # Save model (TensorFlow SavedModel format for SageMaker)
     os.makedirs(args.output_dir, exist_ok=True)
-    model_path = os.path.join(args.output_dir, "model.keras")
-    model.save(model_path)
-    print(f"\n  Model saved to: {model_path}")
+
+    # Save in both formats
+    keras_path = os.path.join(args.output_dir, "model.keras")
+    model.save(keras_path)
+
+    # Export as SavedModel for SageMaker TF Serving container
+    saved_model_dir = os.path.join(args.output_dir, "export", "Servo", "1")
+    os.makedirs(saved_model_dir, exist_ok=True)
+    model.export(saved_model_dir)
+
+    print(f"\n  Keras model saved to: {keras_path}")
+    print(f"  SavedModel exported to: {saved_model_dir}")
 
     # Save metrics
     duration = time.time() - start_time

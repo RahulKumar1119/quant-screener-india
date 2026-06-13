@@ -7,37 +7,37 @@ Parameters:
   S3BucketName:
     Type: String
     Description: S3 bucket containing model artifacts (model.tar.gz files)
-    Default: quant-screener-india-models
+    Default: quant-screener-india-deploy-438097524343
 
   XGBoostModelDataUrl:
     Type: String
     Description: S3 URI to the XGBoost model artifact (model.tar.gz)
-    Default: s3://quant-screener-india-models/xgboost/model.tar.gz
+    Default: s3://quant-screener-india-deploy-438097524343/models/xgboost/model.tar.gz
 
   LSTMModelDataUrl:
     Type: String
     Description: S3 URI to the LSTM model artifact (model.tar.gz)
-    Default: s3://quant-screener-india-models/lstm/model.tar.gz
+    Default: s3://quant-screener-india-deploy-438097524343/models/lstm/model.tar.gz
 
   TFTModelDataUrl:
     Type: String
     Description: S3 URI to the TFT model artifact (model.tar.gz)
-    Default: s3://quant-screener-india-models/tft/model.tar.gz
+    Default: s3://quant-screener-india-deploy-438097524343/models/tft/model.tar.gz
 
   XGBoostImageUri:
     Type: String
     Description: ECR URI for the XGBoost inference container
-    Default: 683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:1.7-1
+    Default: 720646828776.dkr.ecr.ap-south-1.amazonaws.com/sagemaker-xgboost:1.7-1
 
   LSTMImageUri:
     Type: String
     Description: ECR URI for the TensorFlow inference container (LSTM)
-    Default: 763104351884.dkr.ecr.us-east-1.amazonaws.com/tensorflow-inference:2.12-cpu
+    Default: 763104351884.dkr.ecr.ap-south-1.amazonaws.com/tensorflow-inference:2.12-cpu
 
   TFTImageUri:
     Type: String
     Description: ECR URI for the PyTorch inference container (TFT)
-    Default: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    Default: 763104351884.dkr.ecr.ap-south-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
 
 Resources:
   # --------------------------------------------------------------------------
@@ -90,7 +90,7 @@ Resources:
         - ModelName: !GetAtt XGBoostModel.ModelName
           VariantName: AllTraffic
           ServerlessConfig:
-            MaxConcurrency: 5
+            MaxConcurrency: 2
             MemorySizeInMB: 2048
 
   XGBoostEndpoint:
@@ -121,7 +121,7 @@ Resources:
         - ModelName: !GetAtt LSTMModel.ModelName
           VariantName: AllTraffic
           ServerlessConfig:
-            MaxConcurrency: 5
+            MaxConcurrency: 2
             MemorySizeInMB: 2048
 
   LSTMEndpoint:
@@ -152,7 +152,7 @@ Resources:
         - ModelName: !GetAtt TFTModel.ModelName
           VariantName: AllTraffic
           ServerlessConfig:
-            MaxConcurrency: 5
+            MaxConcurrency: 2
             MemorySizeInMB: 2048
 
   TFTEndpoint:

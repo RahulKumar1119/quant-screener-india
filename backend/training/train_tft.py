@@ -281,7 +281,17 @@ def main() -> None:
     os.makedirs(args.output_dir, exist_ok=True)
     model_path = os.path.join(args.output_dir, "model.pt")
     torch.save(model.state_dict(), model_path)
+
+    # Copy inference.py for SageMaker packaging
+    code_dir = os.path.join(args.output_dir, "code")
+    os.makedirs(code_dir, exist_ok=True)
+    import shutil
+    inference_src = os.path.join(os.path.dirname(__file__), "tft_inference.py")
+    if os.path.exists(inference_src):
+        shutil.copy(inference_src, os.path.join(code_dir, "inference.py"))
+
     print(f"\n  Model saved to: {model_path}")
+    print(f"  Inference code: {code_dir}/inference.py")
 
     # Save metrics
     duration = time.time() - start_time
