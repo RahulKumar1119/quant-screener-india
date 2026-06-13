@@ -52,9 +52,12 @@ export function NavigationHeader() {
             <>
               {isAuthenticated && user ? (
                 <div className="flex items-center gap-3">
-                  <span className="hidden sm:inline text-sm text-gray-300 truncate max-w-[160px]">
+                  <Link
+                    to="/profile"
+                    className="hidden sm:inline text-sm text-gray-300 hover:text-white truncate max-w-[160px] transition-colors"
+                  >
                     {user.email}
-                  </span>
+                  </Link>
                   <button
                     onClick={logout}
                     className="text-sm px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
