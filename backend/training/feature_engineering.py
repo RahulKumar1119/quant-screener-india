@@ -20,13 +20,15 @@ from sklearn.preprocessing import MinMaxScaler
 def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     """Compute technical/momentum features from OHLC data for XGBoost.
 
-    Expanded feature set (20+ features) for better classification:
+    Expanded feature set (30+ features) for better classification:
     - Momentum: 5d, 10d, 20d, 30d, 60d returns
     - Volatility: 10d, 20d rolling std
     - Volume: ratio, trend, spike detection
     - Technical: RSI, MACD signal, Bollinger Band position, ADX proxy
     - Price structure: distance from high/low, candle patterns
     - Moving averages: SMA crossovers, EMA ratios
+    - Multi-timeframe: weekly, monthly patterns
+    - Seasonality: month, day-of-week encoding
 
     Args:
         df: DataFrame with columns DATE, OPEN, HIGH, LOW, CLOSE, VOLUME.
@@ -49,17 +51,22 @@ def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     open_price = features["OPEN"]
     volume = features["VOLUME"]
 
-    # === Momentum features ===
+    # === Momentum features (multiple timeframes) ===
     features["return_5d"] = close.pct_change(periods=5)
     features["return_10d"] = close.pct_change(periods=10)
     features["return_20d"] = close.pct_change(periods=20)
     features["return_30d"] = close.pct_change(periods=30)
     features["return_60d"] = close.pct_change(periods=60)
 
+    # Momentum acceleration (rate of change of returns)
+    features["momentum_accel"] = features["return_5d"] - features["return_5d"].shift(5)
+
     # === Volatility features ===
     daily_returns = close.pct_change()
     features["volatility_10d"] = daily_returns.rolling(window=10).std() * np.sqrt(252)
     features["volatility_20d"] = daily_returns.rolling(window=20).std() * np.sqrt(252)
+    # Volatility ratio (recent vs longer-term)
+    features["vol_ratio_10_20"] = features["volatility_10d"] / features["volatility_20d"].replace(0, np.nan)
 
     # === Volume features ===
     vol_ma20 = volume.rolling(window=20).mean()
@@ -67,6 +74,11 @@ def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     features["volume_trend"] = vol_ma20.pct_change(periods=10)
     features["volume_spike"] = (volume / vol_ma20.replace(0, np.nan)) > 2.0
     features["volume_spike"] = features["volume_spike"].astype(float)
+    # On-balance volume trend
+    obv = (np.sign(daily_returns) * volume).cumsum()
+    features["obv_slope"] = obv.rolling(20).apply(
+        lambda x: np.polyfit(range(len(x)), x, 1)[0] if len(x) == 20 else 0, raw=False
+    ) / close.replace(0, np.nan)
 
     # === RSI (14-day) ===
     delta = close.diff()
@@ -74,6 +86,9 @@ def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
     rs = gain / loss.replace(0, np.nan)
     features["rsi_14"] = 100 - (100 / (1 + rs))
+    # RSI zones (oversold/overbought indicators)
+    features["rsi_oversold"] = (features["rsi_14"] < 30).astype(float)
+    features["rsi_overbought"] = (features["rsi_14"] > 70).astype(float)
 
     # === MACD signal ===
     ema12 = close.ewm(span=12).mean()
@@ -81,6 +96,8 @@ def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     macd = ema12 - ema26
     macd_signal = macd.ewm(span=9).mean()
     features["macd_histogram"] = (macd - macd_signal) / close.replace(0, np.nan)
+    # MACD crossover direction
+    features["macd_cross_up"] = ((macd > macd_signal) & (macd.shift(1) <= macd_signal.shift(1))).astype(float)
 
     # === Bollinger Band position (0=lower, 1=upper) ===
     sma20 = close.rolling(window=20).mean()
@@ -89,6 +106,8 @@ def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     lower_band = sma20 - 2 * std20
     band_width = upper_band - lower_band
     features["bb_position"] = (close - lower_band) / band_width.replace(0, np.nan)
+    # Bollinger Band width (volatility expansion/contraction)
+    features["bb_width"] = band_width / sma20.replace(0, np.nan)
 
     # === Moving average crossovers ===
     sma5 = close.rolling(window=5).mean()
@@ -124,22 +143,44 @@ def engineer_xgboost_features(df: pd.DataFrame) -> pd.DataFrame:
     full_range = (high - low).replace(0, np.nan)
     features["candle_body_ratio"] = body / full_range
 
-    # === Trend strength (ADX proxy): ratio of directional movement ===
+    # === Trend strength (ADX proxy) ===
     plus_dm = high.diff()
     minus_dm = -low.diff()
     plus_dm = plus_dm.where(plus_dm > minus_dm, 0).where(plus_dm > 0, 0)
     minus_dm = minus_dm.where(minus_dm > plus_dm, 0).where(minus_dm > 0, 0)
     features["trend_strength"] = (plus_dm.rolling(14).mean() - minus_dm.rolling(14).mean()).abs() / (plus_dm.rolling(14).mean() + minus_dm.rolling(14).mean()).replace(0, np.nan)
 
+    # === Seasonality features ===
+    if "DATE" in features.columns:
+        dates = pd.to_datetime(features["DATE"])
+        features["month"] = dates.dt.month / 12.0  # Normalize to 0-1
+        features["day_of_week"] = dates.dt.dayofweek / 4.0  # 0-1 (Mon-Fri)
+        # January effect, budget month (Feb), quarter-end effects
+        features["is_quarter_end"] = dates.dt.month.isin([3, 6, 9, 12]).astype(float)
+    else:
+        features["month"] = 0.5
+        features["day_of_week"] = 0.5
+        features["is_quarter_end"] = 0.0
+
+    # === Price relative to recent pattern ===
+    # Higher high and higher low streak
+    features["higher_high_streak"] = (high > high.shift(1)).rolling(5).sum()
+    features["lower_low_streak"] = (low < low.shift(1)).rolling(5).sum()
+
     # Select only feature columns
     feature_cols = [
         "return_5d", "return_10d", "return_20d", "return_30d", "return_60d",
-        "volatility_10d", "volatility_20d",
-        "volume_ratio", "volume_trend", "volume_spike",
-        "rsi_14", "macd_histogram", "bb_position",
+        "momentum_accel",
+        "volatility_10d", "volatility_20d", "vol_ratio_10_20",
+        "volume_ratio", "volume_trend", "volume_spike", "obv_slope",
+        "rsi_14", "rsi_oversold", "rsi_overbought",
+        "macd_histogram", "macd_cross_up",
+        "bb_position", "bb_width",
         "ma_5_20_cross", "ma_20_50_cross", "ema_ratio",
         "dist_from_high", "dist_from_low",
         "atr_normalized", "candle_body_ratio", "trend_strength",
+        "month", "day_of_week", "is_quarter_end",
+        "higher_high_streak", "lower_low_streak",
     ]
 
     result = features[["DATE", "CLOSE"] + feature_cols].copy()

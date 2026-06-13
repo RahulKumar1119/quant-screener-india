@@ -116,12 +116,17 @@ def main() -> None:
 
         feature_cols = [
             "return_5d", "return_10d", "return_20d", "return_30d", "return_60d",
-            "volatility_10d", "volatility_20d",
-            "volume_ratio", "volume_trend", "volume_spike",
-            "rsi_14", "macd_histogram", "bb_position",
+            "momentum_accel",
+            "volatility_10d", "volatility_20d", "vol_ratio_10_20",
+            "volume_ratio", "volume_trend", "volume_spike", "obv_slope",
+            "rsi_14", "rsi_oversold", "rsi_overbought",
+            "macd_histogram", "macd_cross_up",
+            "bb_position", "bb_width",
             "ma_5_20_cross", "ma_20_50_cross", "ema_ratio",
             "dist_from_high", "dist_from_low",
             "atr_normalized", "candle_body_ratio", "trend_strength",
+            "month", "day_of_week", "is_quarter_end",
+            "higher_high_streak", "lower_low_streak",
         ]
 
         features_valid = features_df.loc[valid_mask, feature_cols]
@@ -231,12 +236,17 @@ def main() -> None:
         },
         "features": [
             "return_5d", "return_10d", "return_20d", "return_30d", "return_60d",
-            "volatility_10d", "volatility_20d",
-            "volume_ratio", "volume_trend", "volume_spike",
-            "rsi_14", "macd_histogram", "bb_position",
+            "momentum_accel",
+            "volatility_10d", "volatility_20d", "vol_ratio_10_20",
+            "volume_ratio", "volume_trend", "volume_spike", "obv_slope",
+            "rsi_14", "rsi_oversold", "rsi_overbought",
+            "macd_histogram", "macd_cross_up",
+            "bb_position", "bb_width",
             "ma_5_20_cross", "ma_20_50_cross", "ema_ratio",
             "dist_from_high", "dist_from_low",
             "atr_normalized", "candle_body_ratio", "trend_strength",
+            "month", "day_of_week", "is_quarter_end",
+            "higher_high_streak", "lower_low_streak",
         ],
     }
 
