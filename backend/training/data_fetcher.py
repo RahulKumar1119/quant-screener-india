@@ -299,18 +299,22 @@ class TrainingDataFetcher:
         yf_symbol = f"{symbol.upper()}.NS"
 
         try:
-            df = yf.download(yf_symbol, period=f"{days}d", progress=False)
+            df = yf.download(yf_symbol, period=f"{days}d", progress=False, auto_adjust=True)
 
             if df.empty:
                 return pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
+            # Handle multi-level columns from yfinance (flatten if needed)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
             result = pd.DataFrame({
                 "DATE": df.index,
-                "OPEN": df["Open"].values,
-                "HIGH": df["High"].values,
-                "LOW": df["Low"].values,
-                "CLOSE": df["Close"].values,
-                "VOLUME": df["Volume"].values if "Volume" in df.columns else 0,
+                "OPEN": df["Open"].values.flatten(),
+                "HIGH": df["High"].values.flatten(),
+                "LOW": df["Low"].values.flatten(),
+                "CLOSE": df["Close"].values.flatten(),
+                "VOLUME": df["Volume"].values.flatten() if "Volume" in df.columns else 0,
             })
 
             result["DATE"] = pd.to_datetime(result["DATE"])
