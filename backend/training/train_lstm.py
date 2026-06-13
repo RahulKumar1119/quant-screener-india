@@ -123,16 +123,20 @@ def main() -> None:
 
     # Import TensorFlow/Keras
     try:
-        os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Suppress all TF warnings
+        os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Suppress oneDNN warning
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""  # Skip GPU search entirely
         import tensorflow as tf
+        tf.get_logger().setLevel("ERROR")
         from tensorflow import keras
     except ImportError:
         print("ERROR: tensorflow not installed. Run: pip install tensorflow")
         sys.exit(1)
 
-    # Build model
+    # Build model (use Input layer to avoid deprecation warning)
     model = keras.Sequential([
-        keras.layers.LSTM(64, input_shape=(args.window, 1), return_sequences=True),
+        keras.layers.Input(shape=(args.window, 1)),
+        keras.layers.LSTM(64, return_sequences=True),
         keras.layers.Dropout(0.2),
         keras.layers.LSTM(32),
         keras.layers.Dropout(0.2),
