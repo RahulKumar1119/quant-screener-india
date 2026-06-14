@@ -1,48 +1,30 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   SageMaker Serverless Inference Endpoints for Quant Screener India ML models.
-  Deploys XGBoost, LSTM, and TFT models as serverless endpoints with auto-scaling.
+  Deploys XGBoost and TFT models. LSTM skipped (Keras 3 incompatible with TF Serving).
 
 Parameters:
   S3BucketName:
     Type: String
-    Description: S3 bucket containing model artifacts (model.tar.gz files)
     Default: quant-screener-india-deploy-438097524343
 
   XGBoostModelDataUrl:
     Type: String
-    Description: S3 URI to the XGBoost model artifact (model.tar.gz)
     Default: s3://quant-screener-india-deploy-438097524343/models/xgboost/model.tar.gz
-
-  LSTMModelDataUrl:
-    Type: String
-    Description: S3 URI to the LSTM model artifact (model.tar.gz)
-    Default: s3://quant-screener-india-deploy-438097524343/models/lstm/model.tar.gz
 
   TFTModelDataUrl:
     Type: String
-    Description: S3 URI to the TFT model artifact (model.tar.gz)
     Default: s3://quant-screener-india-deploy-438097524343/models/tft/model.tar.gz
 
   XGBoostImageUri:
     Type: String
-    Description: ECR URI for the XGBoost inference container
     Default: 720646828776.dkr.ecr.ap-south-1.amazonaws.com/sagemaker-xgboost:1.7-1
-
-  LSTMImageUri:
-    Type: String
-    Description: ECR URI for the TensorFlow inference container (LSTM)
-    Default: 763104351884.dkr.ecr.ap-south-1.amazonaws.com/tensorflow-inference:2.12-cpu
 
   TFTImageUri:
     Type: String
-    Description: ECR URI for the PyTorch inference container (TFT)
     Default: 763104351884.dkr.ecr.ap-south-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
 
 Resources:
-  # --------------------------------------------------------------------------
-  # IAM Role for SageMaker
-  # --------------------------------------------------------------------------
   SageMakerExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -70,7 +52,7 @@ Resources:
                 Resource: "arn:aws:logs:*:*:*"
 
   # --------------------------------------------------------------------------
-  # XGBoost Model + Endpoint Config + Endpoint
+  # XGBoost Rating Endpoint
   # --------------------------------------------------------------------------
   XGBoostModel:
     Type: AWS::SageMaker::Model
@@ -90,7 +72,7 @@ Resources:
         - ModelName: !GetAtt XGBoostModel.ModelName
           VariantName: AllTraffic
           ServerlessConfig:
-            MaxConcurrency: 2
+            MaxConcurrency: 3
             MemorySizeInMB: 2048
 
   XGBoostEndpoint:
@@ -101,38 +83,7 @@ Resources:
     DependsOn: XGBoostEndpointConfig
 
   # --------------------------------------------------------------------------
-  # LSTM Model + Endpoint Config + Endpoint
-  # --------------------------------------------------------------------------
-  LSTMModel:
-    Type: AWS::SageMaker::Model
-    Properties:
-      ModelName: quant-screener-lstm-model
-      ExecutionRoleArn: !GetAtt SageMakerExecutionRole.Arn
-      PrimaryContainer:
-        Image: !Ref LSTMImageUri
-        ModelDataUrl: !Ref LSTMModelDataUrl
-        Mode: SingleModel
-
-  LSTMEndpointConfig:
-    Type: AWS::SageMaker::EndpointConfig
-    Properties:
-      EndpointConfigName: quant-screener-lstm-config
-      ProductionVariants:
-        - ModelName: !GetAtt LSTMModel.ModelName
-          VariantName: AllTraffic
-          ServerlessConfig:
-            MaxConcurrency: 2
-            MemorySizeInMB: 2048
-
-  LSTMEndpoint:
-    Type: AWS::SageMaker::Endpoint
-    Properties:
-      EndpointName: quant-screener-lstm
-      EndpointConfigName: !GetAtt LSTMEndpointConfig.EndpointConfigName
-    DependsOn: LSTMEndpointConfig
-
-  # --------------------------------------------------------------------------
-  # TFT Model + Endpoint Config + Endpoint
+  # TFT Macro Resilience Endpoint
   # --------------------------------------------------------------------------
   TFTModel:
     Type: AWS::SageMaker::Model
@@ -152,7 +103,7 @@ Resources:
         - ModelName: !GetAtt TFTModel.ModelName
           VariantName: AllTraffic
           ServerlessConfig:
-            MaxConcurrency: 2
+            MaxConcurrency: 3
             MemorySizeInMB: 2048
 
   TFTEndpoint:
@@ -164,25 +115,8 @@ Resources:
 
 Outputs:
   XGBoostEndpointName:
-    Description: XGBoost SageMaker Serverless Endpoint name
     Value: !GetAtt XGBoostEndpoint.EndpointName
-    Export:
-      Name: quant-screener-xgboost-endpoint
-
-  LSTMEndpointName:
-    Description: LSTM SageMaker Serverless Endpoint name
-    Value: !GetAtt LSTMEndpoint.EndpointName
-    Export:
-      Name: quant-screener-lstm-endpoint
-
   TFTEndpointName:
-    Description: TFT SageMaker Serverless Endpoint name
     Value: !GetAtt TFTEndpoint.EndpointName
-    Export:
-      Name: quant-screener-tft-endpoint
-
   SageMakerRoleArn:
-    Description: SageMaker execution role ARN
     Value: !GetAtt SageMakerExecutionRole.Arn
-    Export:
-      Name: quant-screener-sagemaker-role-arn

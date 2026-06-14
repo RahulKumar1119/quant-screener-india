@@ -1,0 +1,34 @@
+{
+  "model": "lstm_price",
+  "trained_at": "2026-06-14T10:10:17.056274+00:00",
+  "training_duration_seconds": 51.5,
+  "data_source": "BSE India API (1-year daily OHLC)",
+  "tickers_used": [
+    "RELIANCE",
+    "TCS",
+    "INFY",
+    "HDFCBANK",
+    "ICICIBANK",
+    "HINDUNILVR",
+    "ITC",
+    "SBIN",
+    "BHARTIARTL",
+    "LT"
+  ],
+  "samples": {
+    "train": 2680,
+    "validation": 670
+  },
+  "metrics": {
+    "mse": 0.0019,
+    "mae": 0.03089,
+    "mape_percent": 11.72
+  },
+  "hyperparameters": {
+    "epochs_configured": 50,
+    "epochs_run": 50,
+    "batch_size": 32,
+    "window_size": 30,
+    "architecture": "LSTM(64)->Dropout(0.2)->LSTM(32)->Dropout(0.2)->Dense(1)"
+  }
+}

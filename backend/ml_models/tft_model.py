@@ -69,122 +69,188 @@ class TFTModel:
             self.endpoint_name,
         )
 
-    def predict(self, repo_rate: float, sector_indices: dict[str, float]) -> dict:
-        """Produce Macro Resilience Score and trend outlook via SageMaker.
+    def predict(self, repo_rate: float, sector_indices: dict[str, float], stock_data: dict = None) -> dict:
+        """Produce per-stock Resilience Score based on price momentum.
 
-        Attempts to invoke the SageMaker endpoint. If the endpoint is
-        unavailable, falls back to heuristic scoring.
+        Uses actual stock momentum (7d, 30d, 90d returns) combined with
+        volatility and trend strength to score resilience 0-100.
 
         Args:
-            repo_rate: RBI REPO rate as a float (e.g. 6.5 for 6.5%).
+            repo_rate: RBI REPO rate as a float.
             sector_indices: Dict mapping sector name to current index value.
+            stock_data: Dict with stock-specific data:
+                - "symbol": str (NSE symbol for yfinance lookup)
+                - "pe_ratio": float
+                - "roe": float
+                - "price_change": float (today's % change)
+                - "sector": str
 
         Returns:
-            Dict with keys:
-                - "score": int in range [0, 100]
-                - "trend_outlook": "Bullish" | "Bearish" | "Neutral"
+            Dict with "score" (0-100) and "trend_outlook".
         """
+        symbol = stock_data.get("symbol", "") if stock_data else ""
+
+        # Fetch real momentum data from yfinance
+        momentum_score = self._compute_momentum_score(symbol)
+
+        # Fundamental quality bonus (small adjustments)
+        quality_adj = 0
+        if stock_data:
+            pe = stock_data.get("pe_ratio", 0)
+            roe = stock_data.get("roe", 0)
+
+            # Quality premium: high ROE + reasonable PE
+            if roe > 20 and pe < 30:
+                quality_adj += 5
+            elif roe > 15 and pe < 25:
+                quality_adj += 3
+            elif roe < 5 or pe > 60:
+                quality_adj -= 5
+
+        score = max(0, min(100, momentum_score + quality_adj))
+        trend = self._score_to_trend(score)
+        return {"score": score, "trend_outlook": trend}
+
+    def _compute_momentum_score(self, symbol: str) -> int:
+        """Compute momentum-based resilience score from real price data.
+
+        Fetches 90 days of data and computes:
+        - 7-day return (short-term momentum)
+        - 30-day return (medium-term momentum)
+        - 90-day return (long-term trend)
+        - Volatility (lower = more resilient)
+        - Trend consistency (how many up-days recently)
+
+        Returns score 0-100 where:
+        - 80-100: Strong bullish momentum, low volatility
+        - 60-80: Positive trend
+        - 40-60: Neutral/sideways
+        - 20-40: Negative trend
+        - 0-20: Strong bearish, high volatility
+        """
+        if not symbol:
+            return 50
+
         try:
-            payload = json.dumps({
-                "repo_rate": repo_rate,
-                "sector_indices": sector_indices,
-            })
+            import yfinance as yf
 
-            response = self.client.invoke_endpoint(
-                EndpointName=self.endpoint_name,
-                ContentType="application/json",
-                Accept="application/json",
-                Body=payload,
-            )
+            df = yf.download(f"{symbol}.NS", period="90d", progress=False, auto_adjust=True)
 
-            result = json.loads(response["Body"].read().decode("utf-8"))
+            if df.empty or len(df) < 20:
+                return 50
 
-            score = result.get("score")
-            trend_outlook = result.get("trend_outlook")
+            # Handle multi-level columns
+            if isinstance(df.columns, __import__('pandas').MultiIndex):
+                df.columns = df.columns.get_level_values(0)
 
-            if score is not None and trend_outlook is not None:
-                score = max(0, min(100, int(score)))
-                return {"score": score, "trend_outlook": trend_outlook}
+            close = df["Close"].values.flatten()
 
-            # If response doesn't have expected fields, use raw output
-            raw_score = result.get("predictions", [None])[0]
-            if raw_score is not None:
-                score = max(0, min(100, int(float(raw_score) * 100)))
-                trend = self._score_to_trend(score)
-                return {"score": score, "trend_outlook": trend}
+            # Returns at different timeframes
+            ret_7d = (close[-1] / close[-7] - 1) * 100 if len(close) >= 7 else 0
+            ret_30d = (close[-1] / close[-30] - 1) * 100 if len(close) >= 30 else 0
+            ret_90d = (close[-1] / close[0] - 1) * 100 if len(close) >= 2 else 0
 
-            # Unexpected response format — fall back to heuristic
-            logger.warning(
-                "Unexpected response from TFT endpoint, using fallback scoring"
-            )
-            score = self._fallback_score(repo_rate, sector_indices)
-            trend = self._score_to_trend(score)
-            return {"score": score, "trend_outlook": trend}
+            # Daily returns for volatility
+            daily_returns = __import__('numpy').diff(close) / close[:-1] * 100
+            volatility = float(__import__('numpy').std(daily_returns)) if len(daily_returns) > 0 else 2.0
 
-        except (ClientError, EndpointConnectionError) as e:
-            logger.warning(
-                "SageMaker TFT endpoint unavailable: %s. Using fallback scoring.",
-                str(e),
-            )
-            score = self._fallback_score(repo_rate, sector_indices)
-            trend = self._score_to_trend(score)
-            return {"score": score, "trend_outlook": trend}
-        except (ReadTimeoutError, ConnectTimeoutError) as e:
-            logger.warning(
-                "SageMaker TFT endpoint timeout: %s. Using fallback scoring.",
-                str(e),
-            )
-            score = self._fallback_score(repo_rate, sector_indices)
-            trend = self._score_to_trend(score)
-            return {"score": score, "trend_outlook": trend}
-        except (ConnectionError, OSError) as e:
-            logger.warning(
-                "SageMaker TFT connection error: %s. Using fallback scoring.",
-                str(e),
-            )
-            score = self._fallback_score(repo_rate, sector_indices)
-            trend = self._score_to_trend(score)
-            return {"score": score, "trend_outlook": trend}
-        except Exception as e:
-            logger.warning(
-                "Unexpected error invoking TFT endpoint: %s. Using fallback scoring.",
-                str(e),
-            )
-            score = self._fallback_score(repo_rate, sector_indices)
-            trend = self._score_to_trend(score)
-            return {"score": score, "trend_outlook": trend}
+            # Trend consistency: % of positive days in last 20 days
+            recent_returns = daily_returns[-20:] if len(daily_returns) >= 20 else daily_returns
+            up_days_pct = (recent_returns > 0).sum() / len(recent_returns) * 100 if len(recent_returns) > 0 else 50
+
+            # === Scoring ===
+            score = 50  # Start neutral
+
+            # Short-term momentum (weight: 30%)
+            if ret_7d > 5:
+                score += 15
+            elif ret_7d > 2:
+                score += 10
+            elif ret_7d > 0:
+                score += 5
+            elif ret_7d > -2:
+                score -= 3
+            elif ret_7d > -5:
+                score -= 8
+            else:
+                score -= 15
+
+            # Medium-term momentum (weight: 30%)
+            if ret_30d > 10:
+                score += 15
+            elif ret_30d > 5:
+                score += 10
+            elif ret_30d > 0:
+                score += 5
+            elif ret_30d > -5:
+                score -= 5
+            elif ret_30d > -10:
+                score -= 10
+            else:
+                score -= 15
+
+            # Long-term trend (weight: 20%)
+            if ret_90d > 20:
+                score += 10
+            elif ret_90d > 10:
+                score += 7
+            elif ret_90d > 0:
+                score += 3
+            elif ret_90d > -10:
+                score -= 5
+            else:
+                score -= 10
+
+            # Volatility penalty (weight: 10%)
+            if volatility < 1.0:
+                score += 5  # Very stable
+            elif volatility < 1.5:
+                score += 2
+            elif volatility > 3.0:
+                score -= 8  # Very volatile
+            elif volatility > 2.5:
+                score -= 5
+
+            # Trend consistency (weight: 10%)
+            if up_days_pct > 60:
+                score += 5
+            elif up_days_pct > 55:
+                score += 2
+            elif up_days_pct < 40:
+                score -= 5
+            elif up_days_pct < 45:
+                score -= 2
+
+            return max(0, min(100, score))
+
+        except Exception as exc:
+            logger.warning("Momentum calculation failed for %s: %s", symbol, exc)
+            return 50
 
     def _fallback_score(
         self, repo_rate: float, sector_indices: dict[str, float]
     ) -> int:
-        """Compute a heuristic score when the SageMaker endpoint is unavailable.
+        """Compute a heuristic base score when the SageMaker endpoint is unavailable.
 
-        Uses a simple weighted average of sector momentum signals and
-        repo rate positioning to produce a reasonable estimate.
+        Uses repo rate positioning to produce a moderate baseline.
+        Per-stock adjustments happen in predict().
 
         Args:
             repo_rate: RBI REPO rate.
             sector_indices: Dict of sector name -> index value.
 
         Returns:
-            Score clamped to [0, 100].
+            Score clamped to [0, 100], centered around 50.
         """
-        if not sector_indices:
-            return 50  # Neutral when no data available
+        # Start at neutral 50
+        base = 50
 
-        sector_values = list(sector_indices.values())
-        avg_sector = np.mean(sector_values) if sector_values else 0.0
+        # Adjust for repo rate: lower rates = more bullish
+        # 4% = +15, 6.5% = 0, 8% = -10
+        rate_adjustment = (6.5 - repo_rate) * 6
 
-        # Normalize average sector value to a 0-100 range heuristically
-        # Typical Nifty sector indices range ~5000-50000
-        normalized = (avg_sector / 30000.0) * 60 + 20
-
-        # Adjust for repo rate: lower rates tend toward bullish
-        # Typical range: 4-8%, midpoint ~6%
-        rate_adjustment = (6.0 - repo_rate) * 3
-
-        score = int(normalized + rate_adjustment)
-        return max(0, min(100, score))
+        score = int(base + rate_adjustment)
+        return max(20, min(80, score))  # Keep base in 20-80 range
 
     def _score_to_trend(self, score: int) -> str:
         """Map numerical score to trend outlook label.

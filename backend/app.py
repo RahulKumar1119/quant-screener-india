@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 import httpx
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -253,18 +254,10 @@ async def get_ticker(ticker: str, request: Request):
 
     # --- Fetch historical OHLC ---
     try:
-        historical_df = cache.get_or_fetch(
-            "historical",
-            f"historical_{ticker}",
-            lambda: nse_client.get_historical_ohlc(ticker, days=30),
-        )
+        historical_df = nse_client.get_historical_ohlc(ticker, days=30)
     except Exception as e:
         logger.warning("Failed to fetch historical data for %s: %s", ticker, e)
-        raise HTTPException(
-            status_code=503,
-            detail="NSE India data source is currently unavailable. Please retry later.",
-            headers={"Retry-After": "30"},
-        )
+        historical_df = pd.DataFrame(columns=["DATE", "OPEN", "HIGH", "LOW", "CLOSE", "VOLUME"])
 
     # --- Fetch quarterly financials ---
     try:
@@ -289,18 +282,21 @@ async def get_ticker(ticker: str, request: Request):
     company_name = metadata.get("companyName", ticker)
 
     profile = TickerProfile(
-        market_cap=float(security_info.get("issuedSize", 0)) * float(price_info.get("lastPrice", 0)),
-        pe_ratio=float(metadata.get("pdSymbolPe", 0) or 0),
-        roe=0.0,  # Not directly available from live quote; populated from financials if available
+        market_cap=float(quote.get("_marketCap", 0) or security_info.get("issuedSize", 0) * price_info.get("lastPrice", 0)),
+        pe_ratio=float(quote.get("_pe", 0) or metadata.get("pdSymbolPe", 0) or 0),
+        roe=float(quote.get("_roe", 0) or 0) * 100 if float(quote.get("_roe", 0) or 0) < 1 else float(quote.get("_roe", 0) or 0),
         roce=0.0,
-        dividend_yield=float(security_info.get("yield", 0) or 0),
+        dividend_yield=float(quote.get("_dividendYield", 0) or security_info.get("yield", 0) or 0),
     )
 
     # --- Build historical data response ---
-    historical = HistoricalData(
-        dates=[d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in historical_df["DATE"].tolist()],
-        close_prices=[float(p) for p in historical_df["CLOSE"].tolist()],
-    )
+    if isinstance(historical_df, pd.DataFrame) and not historical_df.empty:
+        historical = HistoricalData(
+            dates=[d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in historical_df["DATE"].tolist()],
+            close_prices=[float(p) for p in historical_df["CLOSE"].tolist()],
+        )
+    else:
+        historical = HistoricalData(dates=[], close_prices=[])
 
     # --- Build quarterly financials response ---
     quarterly_financials = []
@@ -345,7 +341,14 @@ async def get_ticker(ticker: str, request: Request):
     try:
         repo_rate = nse_client.get_rbi_repo_rate()
         sector_indices = nse_client.get_sector_indices()
-        tft_result = safe_predict(tft_model.predict, repo_rate, sector_indices)
+        stock_data = {
+            "symbol": ticker,
+            "pe_ratio": profile.pe_ratio,
+            "roe": profile.roe,
+            "price_change": float(price_info.get("pChange", 0)),
+            "sector": metadata.get("industry", "") or quote.get("industryInfo", {}).get("sector", ""),
+        }
+        tft_result = safe_predict(tft_model.predict, repo_rate, sector_indices, stock_data)
         if tft_result:
             tft_output = TFTOutput(
                 score=tft_result["score"],

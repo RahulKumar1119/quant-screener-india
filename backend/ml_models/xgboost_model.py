@@ -57,79 +57,116 @@ class XGBoostModel:
             self.endpoint_name,
         )
 
-    def predict(self, financials: list[dict]) -> Optional[dict]:
-        """Predict stock rating from quarterly financial data via SageMaker.
+    def predict(self, financials: list[dict], stock_data: dict = None) -> Optional[dict]:
+        """Predict stock rating from financial data.
+
+        Tries SageMaker first, falls back to heuristic scoring
+        using PE, ROE, and momentum if SageMaker is unavailable.
 
         Args:
-            financials: List of quarterly financial dicts, each containing:
-                - revenue (float): Total revenue in INR
-                - expenses (float): Total expenses in INR
-                - operating_profit (float): Operating profit in INR
-                - net_profit (float): Net profit in INR
-                - margin_pct (float): Net profit margin percentage
+            financials: List of quarterly financial dicts.
+            stock_data: Optional dict with pe_ratio, roe, price_change.
 
         Returns:
-            dict with:
-                - rating: One of "STRONG BUY", "BUY", "HOLD", "SELL"
-                - confidence: Float between 0.0 and 1.0
-            Or None if the endpoint is unavailable or financials are empty.
+            dict with rating and confidence. Never returns None.
         """
-        if not financials:
-            logger.warning("financials list must not be empty")
-            return None
+        # Try SageMaker first
+        if financials:
+            try:
+                features = self._extract_features(financials)
+                # SageMaker XGBoost expects CSV format input
+                csv_payload = ",".join(str(f) for f in features)
 
-        try:
-            features = self._extract_features(financials)
-            payload = json.dumps({"features": features})
+                response = self.client.invoke_endpoint(
+                    EndpointName=self.endpoint_name,
+                    ContentType="text/csv",
+                    Accept="application/json",
+                    Body=csv_payload,
+                )
 
-            response = self.client.invoke_endpoint(
-                EndpointName=self.endpoint_name,
-                ContentType="application/json",
-                Accept="application/json",
-                Body=payload,
-            )
+                result = json.loads(response["Body"].read().decode("utf-8"))
+                probabilities = result.get("probabilities", result.get("predictions", []))
 
-            result = json.loads(response["Body"].read().decode("utf-8"))
+                if probabilities:
+                    if isinstance(probabilities[0], list):
+                        probabilities = probabilities[0]
+                    predicted_class = int(np.argmax(probabilities))
+                    confidence = float(probabilities[predicted_class])
+                    return {
+                        "rating": self.rating_map[predicted_class],
+                        "confidence": round(confidence, 2),
+                    }
+            except Exception as e:
+                logger.warning("SageMaker XGBoost failed: %s. Using heuristic.", str(e))
 
-            # SageMaker XGBoost returns probabilities array
-            probabilities = result.get("probabilities", result.get("predictions", []))
+        # Fallback: heuristic rating from PE + ROE + momentum
+        return self._heuristic_rating(stock_data or {})
 
-            if not probabilities:
-                logger.warning("Empty response from XGBoost SageMaker endpoint")
-                return None
+    def _heuristic_rating(self, stock_data: dict) -> dict:
+        """Produce a stock rating from PE, ROE, and momentum heuristics.
 
-            # Handle nested array (batch response)
-            if isinstance(probabilities[0], list):
-                probabilities = probabilities[0]
+        Scoring:
+        - Low PE + High ROE + Positive momentum = STRONG BUY
+        - Moderate fundamentals = BUY/HOLD
+        - High PE + Low ROE + Negative momentum = SELL
+        """
+        score = 0  # -10 to +10 scale
 
-            predicted_class = int(np.argmax(probabilities))
-            confidence = float(probabilities[predicted_class])
+        pe = stock_data.get("pe_ratio", 20)
+        roe = stock_data.get("roe", 10)
+        momentum = stock_data.get("price_change", 0)
 
-            return {
-                "rating": self.rating_map[predicted_class],
-                "confidence": round(confidence, 2),
-            }
+        # PE scoring
+        if pe <= 0:
+            score -= 2  # Negative PE = loss-making
+        elif pe < 12:
+            score += 3  # Deep value
+        elif pe < 20:
+            score += 2  # Reasonably valued
+        elif pe < 30:
+            score += 0  # Fair
+        elif pe < 50:
+            score -= 1  # Expensive
+        else:
+            score -= 3  # Very expensive
 
-        except (ClientError, EndpointConnectionError) as e:
-            logger.warning(
-                "SageMaker XGBoost endpoint unavailable: %s", str(e)
-            )
-            return None
-        except (ReadTimeoutError, ConnectTimeoutError) as e:
-            logger.warning(
-                "SageMaker XGBoost endpoint timeout: %s", str(e)
-            )
-            return None
-        except (ConnectionError, OSError) as e:
-            logger.warning(
-                "SageMaker XGBoost connection error: %s", str(e)
-            )
-            return None
-        except Exception as e:
-            logger.warning(
-                "Unexpected error invoking XGBoost endpoint: %s", str(e)
-            )
-            return None
+        # ROE scoring
+        if roe > 25:
+            score += 3
+        elif roe > 18:
+            score += 2
+        elif roe > 12:
+            score += 1
+        elif roe > 5:
+            score += 0
+        else:
+            score -= 2
+
+        # Momentum scoring
+        if momentum > 3:
+            score += 2
+        elif momentum > 0:
+            score += 1
+        elif momentum > -3:
+            score -= 1
+        else:
+            score -= 2
+
+        # Map score to rating
+        if score >= 5:
+            rating = "STRONG BUY"
+            confidence = min(0.92, 0.7 + score * 0.03)
+        elif score >= 2:
+            rating = "BUY"
+            confidence = min(0.85, 0.6 + score * 0.04)
+        elif score >= -1:
+            rating = "HOLD"
+            confidence = 0.55 + abs(score) * 0.05
+        else:
+            rating = "SELL"
+            confidence = min(0.88, 0.6 + abs(score) * 0.04)
+
+        return {"rating": rating, "confidence": round(confidence, 2)}
 
     def _extract_features(self, financials: list[dict]) -> list[float]:
         """Extract feature vector from quarterly financial data.
