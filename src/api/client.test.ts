@@ -13,10 +13,6 @@ const mockTickerResponse: TickerResponse = {
     dividend_yield: 1.2,
   },
   xgboost: { rating: "STRONG BUY", confidence: 0.87 },
-  lstm_projection: {
-    dates: ["2025-01-20", "2025-01-21", "2025-01-22", "2025-01-23", "2025-01-24", "2025-01-27", "2025-01-28"],
-    prices: [245.5, 248.2, 250.1, 249.3, 251.0, 253.2, 255.0],
-  },
   tft_score: { score: 72, trend_outlook: "Bullish" },
   gemma_summary: "Based on current fundamentals, JNKINDIA demonstrates strong growth.",
   historical: {

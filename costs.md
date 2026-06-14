@@ -124,7 +124,6 @@ Training runs on your local machine — no AWS cost.
 | Model | Estimated Time (CPU) | Estimated Time (GPU) |
 |-------|---------------------|---------------------|
 | XGBoost | 2–5 minutes | N/A (CPU-optimized) |
-| LSTM (TensorFlow) | 15–30 minutes | 3–5 minutes |
 | TFT (PyTorch) | 20–45 minutes | 5–10 minutes |
 
 Retraining frequency: Weekly or monthly depending on model staleness tolerance.

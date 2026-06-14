@@ -1,6 +1,6 @@
 """Shared feature engineering functions for ML model training.
 
-Computes features from OHLC price data for XGBoost, LSTM, and TFT models.
+Computes features from OHLC price data for XGBoost and TFT models.
 Since BSE API provides price data (not quarterly financials), features are
 derived from price momentum, volatility, volume trends, and technical indicators.
 """
@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
 
 
 # --------------------------------------------------------------------------
@@ -220,45 +219,6 @@ def generate_xgboost_labels(df: pd.DataFrame, forward_days: int = 30) -> pd.Seri
 
 
 LABEL_NAMES = {0: "SELL", 1: "HOLD", 2: "BUY", 3: "STRONG BUY"}
-
-
-# --------------------------------------------------------------------------
-# LSTM Features (sliding window sequences)
-# --------------------------------------------------------------------------
-
-
-def create_lstm_sequences(
-    prices: np.ndarray, window: int = 30
-) -> tuple[np.ndarray, np.ndarray, MinMaxScaler]:
-    """Create sliding window sequences for LSTM training.
-
-    Normalizes prices using MinMaxScaler, then creates overlapping windows
-    of `window` days as input, with the next day's price as the target.
-
-    Args:
-        prices: 1D array of close prices.
-        window: Number of lookback days per sequence. Default 30.
-
-    Returns:
-        Tuple of (X, y, scaler) where:
-        - X: shape (n_samples, window, 1) input sequences
-        - y: shape (n_samples,) target values (next day normalized close)
-        - scaler: fitted MinMaxScaler for inverse transform
-    """
-    prices = np.array(prices, dtype=np.float64).reshape(-1, 1)
-
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = scaler.fit_transform(prices).flatten()
-
-    X, y = [], []
-    for i in range(window, len(scaled)):
-        X.append(scaled[i - window : i])
-        y.append(scaled[i])
-
-    X = np.array(X).reshape(-1, window, 1)
-    y = np.array(y)
-
-    return X, y, scaler
 
 
 # --------------------------------------------------------------------------

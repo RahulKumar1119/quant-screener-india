@@ -1,6 +1,6 @@
 """Orchestrator script to train all ML models sequentially.
 
-Runs XGBoost, LSTM, and TFT training scripts in order,
+Runs XGBoost and TFT training scripts in order,
 reports timing and success/failure for each.
 
 Usage:
@@ -63,16 +63,14 @@ def main() -> None:
     print("  ML Model Training Pipeline - Full Run")
     print("=" * 60)
     print()
-    print("  This will train all 3 models sequentially:")
+    print("  This will train all 2 models sequentially:")
     print("    1. XGBoost Rating Classifier")
-    print("    2. LSTM Price Projection")
-    print("    3. TFT Macro Resilience Scorer")
+    print("    2. TFT Macro Resilience Scorer")
     print()
 
     # Define output directories (relative to backend/)
     backend_dir = Path(__file__).resolve().parent.parent
     xgb_output = str(backend_dir / "model_artifacts" / "xgboost_rating")
-    lstm_output = str(backend_dir / "model_artifacts" / "lstm_price")
     tft_output = str(backend_dir / "model_artifacts" / "tft_macro")
 
     # Training pipeline
@@ -85,14 +83,7 @@ def main() -> None:
         ["--n-estimators", "200", "--max-depth", "6", "--learning-rate", "0.1", "--output-dir", xgb_output],
     )
 
-    # 2. LSTM
-    results["LSTM Price Projection"] = run_script(
-        "LSTM Price Projection",
-        "train_lstm.py",
-        ["--epochs", "50", "--batch-size", "32", "--output-dir", lstm_output],
-    )
-
-    # 3. TFT
+    # 2. TFT
     results["TFT Macro Resilience"] = run_script(
         "TFT Macro Resilience Scorer",
         "train_tft.py",
@@ -123,7 +114,6 @@ def main() -> None:
         print()
         print("  Model artifacts saved to:")
         print(f"    - {xgb_output}/model.json")
-        print(f"    - {lstm_output}/saved_model/")
         print(f"    - {tft_output}/model.pt")
     else:
         print("  Some models failed. Check logs above for details.")

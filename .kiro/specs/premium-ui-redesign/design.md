@@ -134,7 +134,7 @@ Generated via Tailwind plugin or inline CSS:
 
 ## Data Models
 
-This redesign does not introduce new data models. All existing TypeScript interfaces (`TickerProfile`, `HistoricalData`, `LSTMProjection`, `TFTOutput`, `XGBoostOutput`, `QuarterlyFinancial`, `TickerSummary`) remain unchanged. The only new "data" is the Design System token definitions which are CSS custom properties, not TypeScript types.
+This redesign does not introduce new data models. All existing TypeScript interfaces (`TickerProfile`, `HistoricalData`, `TFTOutput`, `XGBoostOutput`, `QuarterlyFinancial`, `TickerSummary`) remain unchanged. The only new "data" is the Design System token definitions which are CSS custom properties, not TypeScript types.
 
 ## Components and Interfaces
 
@@ -255,7 +255,6 @@ Since this is a purely visual change with no business logic modifications:
 - Container: `animate-fade-in` on mount
 - Chart options: Read CSS variables for `layout.background`, `grid` colors, `textColor`
 - Legend dots: Small circles with `hover:animate-pulse-glow`
-- LSTM line: Apply via TradingView `lineSeries` options — use a slightly wider line with chart `crosshairMarkerBackgroundColor` set to blue glow
 
 ### FinancialTable
 

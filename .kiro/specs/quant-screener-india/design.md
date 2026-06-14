@@ -2,7 +2,7 @@
 
 ## Overview
 
-An AI-powered Financial Stock Screening and Analytics Platform focused on the Indian Stock Market (NSE). The platform provides intelligent stock analysis through four ML models (XGBoost, LSTM, TFT, Gemma 3 4B IT via AWS Bedrock), interactive Recharts and TradingView Lightweight Charts visualizations, TanStack Table financial data grids, and a custom text-based query screener. Built as a static SPA (React 19 + Rsbuild + Tailwind CSS) consuming a FastAPI backend that fetches real-time data from NSE India via BSE India public APIs, targeting deployment on AWS Amplify with full dark/light theme support and Indian localization (₹, Crores, Lakhs, weekend-skipping date axes).
+An AI-powered Financial Stock Screening and Analytics Platform focused on the Indian Stock Market (NSE). The platform provides intelligent stock analysis through three ML models (XGBoost, TFT, Gemma 3 4B IT via AWS Bedrock), interactive Recharts and TradingView Lightweight Charts visualizations, TanStack Table financial data grids, and a custom text-based query screener. Built as a static SPA (React 19 + Rsbuild + Tailwind CSS) consuming a FastAPI backend that fetches real-time data from NSE India via BSE India public APIs, targeting deployment on AWS Amplify with full dark/light theme support and Indian localization (₹, Crores, Lakhs, weekend-skipping date axes).
 
 ## Architecture
 
@@ -23,7 +23,7 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │  │  FastAPI Backend (localhost:8000) — Data Aggregation Proxy         │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────┐  │  │
 │  │  │ NSE Client  │  │ Cache Layer │  │ ML Inference Pipeline     │  │  │
-│  │  │ (BSE India API│  │ (TTL-based) │  │ XGBoost│LSTM│TFT│Gemma   │  │  │
+│  │  │ (BSE India API│  │ (TTL-based) │  │ XGBoost│TFT│Gemma       │  │  │
 │  │  │  + httpx)   │  │ (cachetools)│  │ (pre-trained artifacts)  │  │  │
 │  │  └──────┬──────┘  └─────────────┘  └──────────────────────────┘  │  │
 │  │         │                                                          │  │
@@ -134,14 +134,11 @@ The platform follows a **Client → Data Proxy → NSE India** architecture wher
 │   ├── ml_models/
 │   │   ├── __init__.py
 │   │   ├── xgboost_model.py          (XGBoost inference wrapper)
-│   │   ├── lstm_model.py             (LSTM inference wrapper)
 │   │   ├── tft_model.py              (TFT inference wrapper)
 │   │   └── gemma_model.py            (Gemma 3 4B IT via AWS Bedrock)
 │   ├── model_artifacts/
 │   │   ├── xgboost_rating/           (XGBoost model directory)
 │   │   │   └── model.json            (Trained XGBoost Booster)
-│   │   ├── lstm_price/               (LSTM model directory)
-│   │   │   └── (Keras SavedModel)    (Trained LSTM weights)
 │   │   └── tft_macro/                (TFT model directory)
 │   │       └── model.pt              (Trained TFT state_dict)
 │   ├── schemas.py                    (Pydantic response models)
@@ -330,13 +327,12 @@ All pre-trained model artifacts are loaded into memory at FastAPI startup:
 # backend/app.py (lifespan)
 
 from contextlib import asynccontextmanager
-from ml_models import XGBoostModel, LSTMModel, TFTModel, GemmaModel
+from ml_models import XGBoostModel, TFTModel, GemmaModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load models at startup
     app.state.xgboost = XGBoostModel("model_artifacts/xgboost_rating/model.json")
-    app.state.lstm = LSTMModel("model_artifacts/lstm_price/")
     app.state.tft = TFTModel("model_artifacts/tft_macro/model.pt")
     app.state.gemma = GemmaModel()  # Connects to AWS Bedrock
     app.state.nse_client = NSEClient()
@@ -382,50 +378,6 @@ class XGBoostModel:
         """Extract feature vector: revenue growth, profit margins, trends."""
         # Revenue growth rate, margin trends, profit consistency, etc.
         ...
-```
-
-### LSTM Model — 7-Day Price Projection from Historical OHLC
-
-```python
-# backend/ml_models/lstm_model.py
-
-import numpy as np
-from tensorflow import keras
-
-class LSTMModel:
-    """Produces 7-day price projection from 30-day historical OHLC."""
-
-    def __init__(self, model_path: str):
-        self.model = keras.models.load_model(model_path)
-        self.sequence_length = 30
-
-    def predict(self, historical_df) -> dict:
-        """
-        Input: DataFrame with 30 rows of OHLC data (DATE, OPEN, HIGH, LOW, CLOSE)
-        Output: {"dates": [...7 trading dates...], "prices": [...7 floats...]}
-        """
-        close_prices = historical_df["CLOSE"].values.astype(np.float32)
-        # Normalize
-        mean_price = close_prices.mean()
-        std_price = close_prices.std()
-        normalized = (close_prices - mean_price) / std_price
-
-        # Reshape for LSTM: (1, 30, 1)
-        input_seq = normalized.reshape(1, self.sequence_length, 1)
-
-        # Predict 7 steps
-        predictions = []
-        current_seq = input_seq.copy()
-        for _ in range(7):
-            pred = self.model.predict(current_seq, verbose=0)[0, 0]
-            predictions.append(pred)
-            current_seq = np.roll(current_seq, -1, axis=1)
-            current_seq[0, -1, 0] = pred
-
-        # Denormalize
-        prices = [(p * std_price + mean_price) for p in predictions]
-        dates = self._generate_trading_dates(7)
-        return {"dates": dates, "prices": [round(p, 2) for p in prices]}
 ```
 
 ### TFT Model — Macro Resilience Score
@@ -582,10 +534,6 @@ Returns full live data for a single ticker, fetched from NSE and enriched with M
     "rating": "STRONG BUY",       // "STRONG BUY" | "BUY" | "HOLD" | "SELL"
     "confidence": 0.87            // computed from real quarterly financials
   },
-  "lstm_projection": {
-    "dates": ["2025-01-20", "2025-01-21", ...],  // 7 trading days
-    "prices": [245.5, 248.2, ...]                 // from real 30-day OHLC
-  },
   "tft_score": {
     "score": 72,                  // 0–100 (from real RBI REPO + sector indices)
     "trend_outlook": "Bullish"    // "Bullish" | "Bearish" | "Neutral"
@@ -663,7 +611,6 @@ Returns summary data for all Nifty 500 constituents (used by the Custom Screener
   "company_name": "JNK India Limited",
   "profile": { ... },            // always present if NSE reachable
   "xgboost": null,               // null when model fails
-  "lstm_projection": null,       // null when model fails
   "tft_score": null,             // null when model fails
   "gemma_summary": "",           // empty string when model fails
   "historical": { ... },         // always present if NSE reachable
@@ -694,11 +641,6 @@ export interface XGBoostOutput {
   confidence: number;
 }
 
-export interface LSTMProjection {
-  dates: string[];
-  prices: number[];
-}
-
 export interface TFTOutput {
   score: number;
   trend_outlook: TrendOutlook;
@@ -723,7 +665,6 @@ export interface TickerResponse {
   company_name: string;
   profile: TickerProfile;
   xgboost: XGBoostOutput | null;
-  lstm_projection: LSTMProjection | null;
   tft_score: TFTOutput | null;
   gemma_summary: string;
   historical: HistoricalData;
@@ -1096,19 +1037,6 @@ historicalSeries.setData(
   }))
 );
 
-// LSTM Projection series (dotted Royal Blue line)
-const projectionSeries = chart.addSeries(LineSeries, {
-  color: "#4169E1",
-  lineWidth: 2,
-  lineStyle: 2, // Dashed
-});
-projectionSeries.setData(
-  projectionDates.map((date, i) => ({
-    time: date,
-    value: projectionPrices[i],
-  }))
-);
-
 // Responsive resize
 const resizeObserver = new ResizeObserver((entries) => {
   const { width } = entries[0].contentRect;
@@ -1120,8 +1048,6 @@ resizeObserver.observe(containerRef.current);
 ### Key Design Decisions
 
 - **Category axis** (not datetime): This naturally skips weekends since we only provide weekday date strings. TradingView Lightweight Charts handles `YYYY-MM-DD` strings natively and skips gaps.
-- **Two series**: Historical as solid line, LSTM projection as dashed line with Royal Blue color.
-- **Separate series**: The projection series starts from the last historical date, making the transition clear.
 - **Responsive**: ResizeObserver adjusts chart width automatically.
 
 ---
@@ -1224,12 +1150,11 @@ async def get_ticker(ticker: str):
 
     # 3. Run ML inference (graceful degradation — errors yield null)
     xgboost_result = safe_predict(xgboost_model, financials)
-    lstm_result = safe_predict(lstm_model, historical)
     tft_result = safe_predict(tft_model, repo_rate, sector_indices)
     gemma_result = safe_generate(gemma_model, ticker, financials, quote, xgboost_result)
 
     return build_response(ticker, quote, historical, financials,
-                         xgboost_result, lstm_result, tft_result, gemma_result)
+                         xgboost_result, tft_result, gemma_result)
 
 
 def safe_predict(model, *args):
@@ -1340,7 +1265,7 @@ For any syntactically invalid query string (containing unknown fields, malformed
 
 ### Property 10: API response schema conformance with live data
 
-For any valid NSE ticker symbol, the response from `/api/screener/{ticker}` must contain all required top-level fields (ticker, company_name, profile, historical, quarterly_financials) with correct types. The fields `xgboost`, `lstm_projection`, and `tft_score` must be either a valid object matching their respective schema or `null`. The `quarterly_financials` array must be non-empty, and `historical.dates` must contain only weekday date strings.
+For any valid NSE ticker symbol, the response from `/api/screener/{ticker}` must contain all required top-level fields (ticker, company_name, profile, historical, quarterly_financials) with correct types. The fields `xgboost` and `tft_score` must be either a valid object matching their respective schema or `null`. The `quarterly_financials` array must be non-empty, and `historical.dates` must contain only weekday date strings.
 
 **Validates: Requirements 9.1, 9.5**
 
@@ -1368,7 +1293,7 @@ For any cache entry with a configured TTL, a lookup performed after the TTL has 
 
 ### Overview
 
-The training pipeline fetches real historical data from NSE India via `BSE India API` and trains three ML models locally. Training scripts live in `backend/training/` and produce model artifacts consumed by the inference wrappers in `backend/ml_models/`.
+The training pipeline fetches real historical data from NSE India via `BSE India API` and trains two ML models locally. Training scripts live in `backend/training/` and produce model artifacts consumed by the inference wrappers in `backend/ml_models/`.
 
 ### Training Architecture
 
@@ -1376,7 +1301,6 @@ The training pipeline fetches real historical data from NSE India via `BSE India
 backend/training/
 ├── train_all.py              # Orchestrator: runs all training scripts
 ├── train_xgboost.py          # XGBoost rating classifier
-├── train_lstm.py             # LSTM price projection model
 ├── train_tft.py              # TFT macro resilience scorer
 ├── data_fetcher.py           # Shared NSE data fetching utilities
 ├── feature_engineering.py    # Shared feature engineering functions
@@ -1396,14 +1320,6 @@ NSE India APIs (via BSE India API)
     │   XGBoost Multi-class Classifier (4 classes: SELL/HOLD/BUY/STRONG BUY)
     │       ↓
     │   → backend/model_artifacts/xgboost_rating/model.json
-    │
-    ├── Historical OHLC (1 year, configurable tickers) → LSTM Training
-    │       ↓
-    │   MinMaxScaler + Sliding Window (30-day sequences)
-    │       ↓
-    │   LSTM Sequence Model (predict next-day close)
-    │       ↓
-    │   → backend/model_artifacts/lstm_price/ (SavedModel)
     │
     └── RBI REPO Rate + Sector Indices (historical) → TFT Training
             ↓
@@ -1447,35 +1363,6 @@ xgb_params = {
 ```
 
 **Output**: `model.json` (XGBoost Booster serialized) + `metrics.json` (accuracy, F1-score per class, confusion matrix).
-
-### LSTM Training Details
-
-**Data Source**: 1 year of daily OHLC data for a configurable set of tickers (default: top 50 Nifty stocks by market cap).
-
-**Preprocessing**:
-- MinMaxScaler normalization per ticker (fit on training set only)
-- Sliding window: 30 trading days input → 1 day output (next close)
-- Train/validation split: 80/20 chronological (no shuffle for time series)
-
-**Model Architecture**:
-```python
-model = keras.Sequential([
-    keras.layers.LSTM(64, input_shape=(30, 1), return_sequences=True),
-    keras.layers.Dropout(0.2),
-    keras.layers.LSTM(32),
-    keras.layers.Dropout(0.2),
-    keras.layers.Dense(1),
-])
-model.compile(optimizer="adam", loss="mse", metrics=["mae"])
-```
-
-**Training Config**:
-- Epochs: 50 (default, configurable via CLI)
-- Batch size: 32
-- Early stopping on validation loss (patience=10)
-- Learning rate reduction on plateau (factor=0.5, patience=5)
-
-**Output**: Keras SavedModel directory + `metrics.json` (MSE, MAE, MAPE on validation set).
 
 ### TFT Training Details
 
@@ -1557,13 +1444,6 @@ python backend/training/train_xgboost.py \
     --max-depth 6 \
     --learning-rate 0.1 \
     --output-dir backend/model_artifacts/xgboost_rating/
-
-# Train LSTM
-python backend/training/train_lstm.py \
-    --epochs 50 \
-    --batch-size 32 \
-    --tickers "RELIANCE,TCS,INFY,HDFCBANK,ICICIBANK" \
-    --output-dir backend/model_artifacts/lstm_price/
 
 # Train TFT
 python backend/training/train_tft.py \

@@ -1,10 +1,9 @@
 # ML Model Training Pipeline
 
-Training scripts for the Quant Screener India ML models. Fetches historical market data from BSE India API and trains three models:
+Training scripts for the Quant Screener India ML models. Fetches historical market data from BSE India API and trains two models:
 
 1. **XGBoost Rating Classifier** — Predicts stock ratings (SELL/HOLD/BUY/STRONG BUY) from price momentum features
-2. **LSTM Price Projection** — Predicts next-day close prices from 30-day sliding windows
-3. **TFT Macro Resilience Scorer** — Scores market macro resilience from sector momentum patterns
+2. **TFT Macro Resilience Scorer** — Scores market macro resilience from sector momentum patterns
 
 ## Prerequisites
 
@@ -14,7 +13,6 @@ pip install -r requirements.txt
 
 Requires Python 3.9+ and the following libraries:
 - scikit-learn, xgboost (XGBoost model)
-- tensorflow/keras (LSTM model)
 - torch/PyTorch (TFT model)
 - pandas, numpy, matplotlib (shared)
 - httpx (BSE API data fetching)
@@ -52,21 +50,6 @@ python train_xgboost.py \
 
 **Output**: `model.json` + `metrics.json`
 
-### LSTM Price Projection
-
-```bash
-python train_lstm.py \
-    --epochs 50 \
-    --batch-size 32 \
-    --tickers "RELIANCE,TCS,INFY,HDFCBANK,ICICIBANK" \
-    --window 30 \
-    --output-dir ../model_artifacts/lstm_price/
-```
-
-**Architecture**: LSTM(64) → Dropout(0.2) → LSTM(32) → Dropout(0.2) → Dense(1)
-
-**Output**: Keras SavedModel directory + `metrics.json`
-
 ### TFT Macro Resilience Scorer
 
 ```bash
@@ -97,9 +80,6 @@ backend/model_artifacts/
 ├── xgboost_rating/
 │   ├── model.json        # XGBoost serialized model
 │   └── metrics.json      # Training metrics and config
-├── lstm_price/
-│   ├── saved_model/      # Keras SavedModel directory
-│   └── metrics.json
 └── tft_macro/
     ├── model.pt          # PyTorch state_dict
     └── metrics.json

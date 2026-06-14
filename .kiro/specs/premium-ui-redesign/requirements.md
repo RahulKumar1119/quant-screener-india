@@ -14,7 +14,7 @@ Premium UI/UX Redesign of the Quant Screener India platform. This spec covers a 
 - **Navigation_Header**: The sticky top bar containing logo, search, and theme toggle
 - **Profile_Card_Grid**: The grid of metric cards showing market cap, PE, ROE, ROCE, and dividend yield
 - **Intel_Engine_Dashboard**: The combined chart and ML-scoring panel section
-- **Price_Chart**: The TradingView Lightweight Charts component displaying historical prices and LSTM projections
+- **Price_Chart**: The TradingView Lightweight Charts component displaying historical prices
 - **TFT_Score_Gauge**: The semi-circle Recharts gauge showing TFT macro resilience score
 - **XGBoost_Rating_Badge**: The badge component displaying the XGBoost AI rating
 - **Financial_Table**: The TanStack Table component showing quarterly financials
@@ -108,7 +108,6 @@ Premium UI/UX Redesign of the Quant Screener India platform. This spec covers a 
 2. THE Price_Chart historical line SHALL use a gradient stroke that fades from a brighter accent at recent points to a dimmer tone at older points
 3. WHEN the Price_Chart first renders, THE Price_Chart container SHALL fade in with opacity 0 to 1 over 400ms
 4. THE Price_Chart legend items SHALL include small colored dot indicators with a subtle pulse animation on hover
-5. WHILE the LSTM projection series is displayed, THE Price_Chart SHALL apply a subtle glow effect to the projection line using a matching blue shadow
 
 ### Requirement 8: Financial Table Premium Treatment
 

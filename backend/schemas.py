@@ -52,21 +52,6 @@ class XGBoostOutput(BaseModel):
     )
 
 
-class LSTMProjection(BaseModel):
-    """LSTM 7-day price projection output."""
-
-    dates: List[str] = Field(
-        ...,
-        description="List of projected trading dates (YYYY-MM-DD, weekdays only)",
-        examples=[["2025-01-20", "2025-01-21", "2025-01-22", "2025-01-23", "2025-01-24", "2025-01-27", "2025-01-28"]],
-    )
-    prices: List[float] = Field(
-        ...,
-        description="List of projected closing prices in INR",
-        examples=[[245.5, 248.2, 250.1, 247.8, 251.3, 253.0, 255.2]],
-    )
-
-
 class TFTOutput(BaseModel):
     """Temporal Fusion Transformer macro resilience output."""
 
@@ -151,10 +136,6 @@ class TickerResponse(BaseModel):
     xgboost: Optional[XGBoostOutput] = Field(
         None,
         description="XGBoost rating output, null if ML inference unavailable",
-    )
-    lstm_projection: Optional[LSTMProjection] = Field(
-        None,
-        description="LSTM 7-day price projection, null if ML inference unavailable",
     )
     tft_score: Optional[TFTOutput] = Field(
         None,

@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >
   SageMaker Serverless Inference Endpoints for Quant Screener India ML models.
-  Deploys XGBoost and TFT models. LSTM skipped (Keras 3 incompatible with TF Serving).
+  Deploys XGBoost and TFT models.
 
 Parameters:
   S3BucketName:

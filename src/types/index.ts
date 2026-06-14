@@ -21,12 +21,6 @@ export interface XGBoostOutput {
   confidence: number;
 }
 
-// LSTM 7-day price projection
-export interface LSTMProjection {
-  dates: string[];
-  prices: number[];
-}
-
 // TFT Macro Resilience Score output
 export interface TFTOutput {
   score: number;
@@ -55,7 +49,6 @@ export interface TickerResponse {
   company_name: string;
   profile: TickerProfile;
   xgboost: XGBoostOutput | null;
-  lstm_projection: LSTMProjection | null;
   tft_score: TFTOutput | null;
   gemma_summary: string;
   historical: HistoricalData;

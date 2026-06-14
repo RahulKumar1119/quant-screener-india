@@ -18,7 +18,7 @@ const MARKET_INDICES = [
 ];
 
 const FEATURES = [
-  { icon: "📈", title: "AI Price Projections", description: "LSTM-powered 7-day price forecasts from real NSE OHLC data" },
+  { icon: "📈", title: "AI Price Projections", description: "ML-powered price forecasts from real NSE OHLC data" },
   { icon: "🧠", title: "ML Stock Ratings", description: "XGBoost multi-class classifier: STRONG BUY → SELL" },
   { icon: "🌐", title: "Macro Resilience", description: "TFT model with RBI REPO + sector indices → score 0-100" },
   { icon: "✨", title: "AI Summaries", description: "Gemma 3 4B SEBI-style fundamental narrative generation" },
@@ -268,8 +268,8 @@ export function HomePage() {
           <div className="hero-line-decoration h-1 w-32 mx-auto bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full mb-8" />
 
           <p className="hero-subtitle text-lg md:text-xl lg:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
-            Real-time NSE data × XGBoost × LSTM × TFT × Gemma AI — 
-            ratings, projections, resilience scores from live market feeds.
+            Real-time NSE data × XGBoost × TFT × Gemma AI — 
+            ratings, resilience scores, and summaries from live market feeds.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-5 justify-center">

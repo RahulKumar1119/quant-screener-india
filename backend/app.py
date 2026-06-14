@@ -18,13 +18,12 @@ from fastapi.responses import JSONResponse
 
 from auth import router as auth_router
 from cache import CacheManager
-from ml_models import GemmaModel, LSTMModel, TFTModel, XGBoostModel
+from ml_models import GemmaModel, TFTModel, XGBoostModel
 from nse_client import NSEClient
 from rate_limiter import RateLimiter
 from schemas import (
     AllTickersResponse,
     HistoricalData,
-    LSTMProjection,
     QuarterlyFinancial,
     TFTOutput,
     TickerProfile,
@@ -46,7 +45,6 @@ async def lifespan(app: FastAPI):
     """Load all ML models and initialize shared services at startup."""
     # ML models
     app.state.xgboost = XGBoostModel("model_artifacts/xgboost_rating.json")
-    app.state.lstm = LSTMModel("model_artifacts/lstm_price.h5")
     app.state.tft = TFTModel("model_artifacts/tft_macro.pt")
     app.state.gemma = GemmaModel()
 
@@ -314,7 +312,6 @@ async def get_ticker(ticker: str, request: Request):
 
     # --- ML Inference ---
     xgboost_model: XGBoostModel = request.app.state.xgboost
-    lstm_model: LSTMModel = request.app.state.lstm
     tft_model: TFTModel = request.app.state.tft
     gemma_model: GemmaModel = request.app.state.gemma
 
@@ -325,15 +322,6 @@ async def get_ticker(ticker: str, request: Request):
         xgboost_output = XGBoostOutput(
             rating=xgboost_result["rating"],
             confidence=xgboost_result["confidence"],
-        )
-
-    # LSTM: 7-day price projection from historical OHLC
-    lstm_result = safe_predict(lstm_model.predict, historical_df)
-    lstm_output: Optional[LSTMProjection] = None
-    if lstm_result:
-        lstm_output = LSTMProjection(
-            dates=lstm_result["dates"],
-            prices=lstm_result["prices"],
         )
 
     # TFT: macro resilience score
@@ -376,7 +364,6 @@ async def get_ticker(ticker: str, request: Request):
         company_name=company_name,
         profile=profile,
         xgboost=xgboost_output,
-        lstm_projection=lstm_output,
         tft_score=tft_output,
         gemma_summary=gemma_summary,
         historical=historical,

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full-stack implementation of an AI-powered Financial Stock Screening platform consuming real-time NSE India data. The backend is a FastAPI data aggregation proxy using `BSE India API` for live NSE feeds, `cachetools` for TTL caching, and pre-trained ML model wrappers (XGBoost, LSTM, TFT, Gemma). The frontend is a React 19 SPA built with Rsbuild, Tailwind CSS, Recharts, TradingView Lightweight Charts, and TanStack Table with Indian localization and dark/light theme support.
+Full-stack implementation of an AI-powered Financial Stock Screening platform consuming real-time NSE India data. The backend is a FastAPI data aggregation proxy using `BSE India API` for live NSE feeds, `cachetools` for TTL caching, and pre-trained ML model wrappers (XGBoost, TFT, Gemma). The frontend is a React 19 SPA built with Rsbuild, Tailwind CSS, Recharts, TradingView Lightweight Charts, and TanStack Table with Indian localization and dark/light theme support.
 
 ## Tasks
 
@@ -18,7 +18,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
   - [x] 1.2 Initialize backend project with FastAPI, BSE India API, and ML dependencies
     - Create `backend/requirements.txt` with: fastapi, uvicorn, BSE India API, httpx, pandas, numpy, xgboost, tensorflow, torch, cachetools, pydantic, boto3
     - Create `backend/` directory structure: `app.py`, `nse_client.py`, `cache.py`, `rate_limiter.py`, `schemas.py`, `ml_models/__init__.py`
-    - Create `backend/model_artifacts/` directory structure with subdirectories (xgboost_rating/, lstm_price/, tft_macro/) and `.gitkeep` files
+    - Create `backend/model_artifacts/` directory structure with subdirectories (xgboost_rating/, tft_macro/) and `.gitkeep` files
     - _Requirements: 9.10, 9.18_
 
 - [x] 2. Backend: NSE data client and session management
@@ -60,11 +60,10 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
   - [x] 5.1 Implement `backend/schemas.py` with all response models
     - Define `TickerProfile` model (market_cap, pe_ratio, roe, roce, dividend_yield)
     - Define `XGBoostOutput` model (rating: Literal enum, confidence: float 0-1)
-    - Define `LSTMProjection` model (dates: list[str], prices: list[float])
     - Define `TFTOutput` model (score: int 0-100, trend_outlook: Literal enum)
     - Define `QuarterlyFinancial` model (quarter, revenue, expenses, operating_profit, net_profit, margin_pct)
     - Define `HistoricalData` model (dates: list[str], close_prices: list[float])
-    - Define `TickerResponse` model with nullable ML fields (xgboost, lstm_projection, tft_score as Optional)
+    - Define `TickerResponse` model with nullable ML fields (xgboost, tft_score as Optional)
     - Define `TickerSummary` and `AllTickersResponse` models for /api/screener/all
     - Define `ErrorResponse` model (detail: str, retry_after: Optional[int])
     - _Requirements: 9.1, 9.5_
@@ -76,12 +75,6 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Define rating_map: {0: "SELL", 1: "HOLD", 2: "BUY", 3: "STRONG BUY"}
     - Implement `_extract_features()` computing revenue growth, margins, profit trends
     - _Requirements: 9.12_
-
-  - [x] 6.2 Implement `backend/ml_models/lstm_model.py`
-    - Create `LSTMModel` class loading Keras .h5 model
-    - Implement `predict(historical_df)` normalizing 30-day OHLC and auto-regressively predicting 7 days
-    - Implement `_generate_trading_dates(count)` producing weekday-only future dates
-    - _Requirements: 9.13_
 
   - [x] 6.3 Implement `backend/ml_models/tft_model.py`
     - Create `TFTModel` class loading PyTorch .pt model
@@ -97,7 +90,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - _Requirements: 9.15_
 
   - [x] 6.5 Create `backend/ml_models/__init__.py` exporting all model classes
-    - Export XGBoostModel, LSTMModel, TFTModel, GemmaModel
+    - Export XGBoostModel, TFTModel, GemmaModel
     - _Requirements: 9.11_
 
   - [ ]* 6.6 Write property test for XGBoost output domain validity (Property 12)
@@ -125,7 +118,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 - [x] 9. Frontend: TypeScript types
   - [x] 9.1 Implement `src/types/index.ts` with all type definitions
     - Define AIRating, TrendOutlook literal union types
-    - Define TickerProfile, XGBoostOutput, LSTMProjection, TFTOutput interfaces
+    - Define TickerProfile, XGBoostOutput, TFTOutput interfaces
     - Define QuarterlyFinancial, HistoricalData interfaces
     - Define TickerResponse with nullable ML fields (xgboost: XGBoostOutput | null, etc.)
     - Define TickerSummary, AllTickersResponse interfaces
@@ -240,12 +233,9 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
 
   - [x] 15.3 Implement `src/components/PriceChart.tsx` with TradingView Lightweight Charts
     - Render line chart with 30-day historical closing prices (solid gray line)
-    - Render LSTM projection as dashed Royal Blue line extending 7 trading days
     - Use YYYY-MM-DD date strings (weekday-only, TradingView skips gaps natively)
-    - Separate series for historical and projection with clear transition point
-    - Handle null `lstm_projection` gracefully (show historical only)
     - Responsive via ResizeObserver: 350px desktop, 250px mobile
-    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+    - _Requirements: 4.1, 4.4, 4.5_
 
   - [x] 15.4 Implement `src/components/TFTScoreGauge.tsx`
     - Render gauge visualization for TFT Macro Resilience Score (0-100)
@@ -382,9 +372,8 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
   - [ ] 22.3 Implement `backend/training/feature_engineering.py` shared feature engineering
     - Implement `engineer_xgboost_features(financials_df)` computing revenue growth (QoQ, YoY), profit margins, expense ratios, profit consistency
     - Implement `generate_xgboost_labels(financials_df, price_df)` using 90-day forward price performance (SELL < -10%, HOLD -10% to +5%, BUY +5% to +20%, STRONG BUY > +20%)
-    - Implement `create_lstm_sequences(ohlc_df, window=30)` producing sliding window input/output arrays with MinMaxScaler
     - Implement `engineer_tft_features(repo_df, sector_dfs)` computing rate change velocity, sector momentum, cross-correlations
-    - _Requirements: 14.11, 14.12, 14.13_
+    - _Requirements: 14.11, 14.13_
 
   - [ ] 22.4 Implement `backend/training/train_xgboost.py`
     - Accept CLI args: --n-estimators (200), --max-depth (6), --learning-rate (0.1), --output-dir
@@ -395,17 +384,6 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - Log training progress (loss per round) to stdout
     - Save model as `model.json` and metrics as `metrics.json` (accuracy, F1 per class, confusion matrix)
     - _Requirements: 14.2, 14.5, 14.6, 14.7, 14.10, 14.11_
-
-  - [ ] 22.5 Implement `backend/training/train_lstm.py`
-    - Accept CLI args: --epochs (50), --batch-size (32), --tickers (comma-separated, default top 50), --output-dir
-    - Fetch 1 year historical OHLC via `TrainingDataFetcher`
-    - Create sliding window sequences (30-day input → 1-day output) via `feature_engineering.py`
-    - Build Keras Sequential model: LSTM(64) → Dropout(0.2) → LSTM(32) → Dropout(0.2) → Dense(1)
-    - Train with early stopping (patience=10) and learning rate reduction on plateau
-    - Chronological 80/20 train/validation split (no shuffling)
-    - Log epoch progress (loss, MAE) to stdout
-    - Save as Keras SavedModel and metrics as `metrics.json` (MSE, MAE, MAPE)
-    - _Requirements: 14.3, 14.5, 14.6, 14.7, 14.10, 14.12_
 
   - [ ] 22.6 Implement `backend/training/train_tft.py`
     - Accept CLI args: --epochs (100), --batch-size (16), --learning-rate (0.001), --output-dir
@@ -419,7 +397,7 @@ Full-stack implementation of an AI-powered Financial Stock Screening platform co
     - _Requirements: 14.4, 14.5, 14.6, 14.7, 14.10, 14.13_
 
   - [ ] 22.7 Implement `backend/training/train_all.py` orchestrator
-    - Run train_xgboost.py, train_lstm.py, train_tft.py sequentially with default parameters
+    - Run train_xgboost.py, train_tft.py sequentially with default parameters
     - Report overall training summary (total time, per-model status)
     - Exit with non-zero code if any training script fails
     - _Requirements: 14.9_
