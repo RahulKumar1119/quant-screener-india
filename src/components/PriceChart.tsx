@@ -1,11 +1,10 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineStyle } from "lightweight-charts";
 import type { IChartApi } from "lightweight-charts";
-import type { HistoricalData, LSTMProjection } from "../types/index";
+import type { HistoricalData } from "../types/index";
 
 interface PriceChartProps {
   historical: HistoricalData;
-  lstmProjection: LSTMProjection | null;
 }
 
 function getCSSColor(varName: string): string {
@@ -21,7 +20,7 @@ function getCSSColor(varName: string): string {
   return raw;
 }
 
-export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
+export function PriceChart({ historical }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
@@ -65,29 +64,6 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
     }));
     historicalSeries.setData(historicalData);
 
-    // LSTM Projection series (dashed Royal Blue line)
-    if (lstmProjection && lstmProjection.dates.length > 0) {
-      const projectionSeries = chart.addLineSeries({
-        color: "#4169E1",
-        lineWidth: 2,
-        lineStyle: LineStyle.Dashed,
-      });
-
-      // Connect projection to last historical point
-      const lastHistoricalDate = historical.dates[historical.dates.length - 1];
-      const lastHistoricalPrice =
-        historical.close_prices[historical.close_prices.length - 1];
-
-      const projectionData = [
-        { time: lastHistoricalDate as string, value: lastHistoricalPrice },
-        ...lstmProjection.dates.map((date, i) => ({
-          time: date as string,
-          value: lstmProjection.prices[i],
-        })),
-      ];
-      projectionSeries.setData(projectionData);
-    }
-
     chart.timeScale().fitContent();
 
     // Responsive via ResizeObserver
@@ -102,7 +78,7 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
       chart.remove();
       chartRef.current = null;
     };
-  }, [historical, lstmProjection]);
+  }, [historical]);
 
   return (
     <div className="w-full min-w-0 animate-fade-in">
@@ -111,12 +87,6 @@ export function PriceChart({ historical, lstmProjection }: PriceChartProps) {
           <span className="inline-block w-4 h-0.5 bg-gray-500 rounded-full" />
           Historical (30d)
         </span>
-        {lstmProjection && (
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-4 h-0.5 border-t-2 border-dashed border-blue-600" />
-            LSTM Projection (7d)
-          </span>
-        )}
       </div>
       <div ref={containerRef} className="w-full min-w-0 rounded-xl overflow-hidden" />
     </div>

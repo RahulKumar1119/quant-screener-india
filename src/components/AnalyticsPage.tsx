@@ -148,7 +148,6 @@ export function AnalyticsPage() {
       {/* Intel Engine Dashboard: Chart + ML Scoring */}
       <IntelEngineDashboard
         historical={data.historical}
-        lstmProjection={data.lstm_projection}
         tftScore={data.tft_score}
         xgboost={data.xgboost}
       />

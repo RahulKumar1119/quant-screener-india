@@ -58,7 +58,6 @@ export function useTickerData(ticker: string): UseTickerDataReturn {
   const isPartial =
     data !== null &&
     (data.xgboost === null ||
-      data.lstm_projection === null ||
       data.tft_score === null);
 
   return { data, loading, error, isPartial };

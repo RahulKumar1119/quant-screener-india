@@ -1,6 +1,5 @@
 import type {
   HistoricalData,
-  LSTMProjection,
   TFTOutput,
   XGBoostOutput,
 } from "../types/index";
@@ -10,14 +9,12 @@ import { XGBoostRatingBadge } from "./XGBoostRatingBadge";
 
 interface IntelEngineDashboardProps {
   historical: HistoricalData;
-  lstmProjection: LSTMProjection | null;
   tftScore: TFTOutput | null;
   xgboost: XGBoostOutput | null;
 }
 
 export function IntelEngineDashboard({
   historical,
-  lstmProjection,
   tftScore,
   xgboost,
 }: IntelEngineDashboardProps) {
@@ -25,7 +22,7 @@ export function IntelEngineDashboard({
     <div className="flex flex-col lg:flex-row gap-4">
       {/* Chart section - 70% on desktop */}
       <div className="w-full lg:w-[70%] min-w-0 glass rounded-lg p-4 shadow-inner">
-        <PriceChart historical={historical} lstmProjection={lstmProjection} />
+        <PriceChart historical={historical} />
       </div>
 
       {/* ML Scoring panel - 30% on desktop */}
