@@ -23,7 +23,7 @@ PACKAGE_DIR="${BUILD_DIR}/package"
 ZIP_FILE="${BUILD_DIR}/lambda-package.zip"
 STACK_NAME="quant-screener-india-backend"
 S3_BUCKET="${DEPLOY_S3_BUCKET:-quant-screener-india-deploy}"
-AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_REGION="${AWS_REGION:-ap-south-1}"
 
 echo "========================================="
 echo " Quant Screener India — Lambda Packager"

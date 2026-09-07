@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Dict, List
 
 import boto3
@@ -22,12 +23,18 @@ class GemmaModel:
     producing a concise fundamental analysis suitable for retail investors.
     """
 
-    def __init__(self, region: str = "us-east-1"):
+    def __init__(self, region: str = ""):
         """Initialize the Bedrock runtime client.
 
         Args:
             region: AWS region where Bedrock is available.
+                Defaults to AWS_REGION/AWS_DEFAULT_REGION env, then ap-south-1.
         """
+        region = (
+            region
+            or os.environ.get("AWS_REGION")
+            or os.environ.get("AWS_DEFAULT_REGION", "ap-south-1")
+        )
         self.client = boto3.client(
             "bedrock-runtime",
             region_name=region,

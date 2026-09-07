@@ -57,7 +57,7 @@ class TFTModel:
         )
         self.client = boto3.client(
             "sagemaker-runtime",
-            region_name=os.environ.get("AWS_REGION", "us-east-1"),
+            region_name=os.environ.get("AWS_REGION", "ap-south-1"),
             config=boto3.session.Config(
                 read_timeout=30,
                 connect_timeout=10,
