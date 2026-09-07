@@ -142,10 +142,13 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.get("/api/screener/all", response_model=AllTickersResponse)
 async def get_all_tickers(request: Request):
-    """Fetch Nifty 500 constituents with summary data.
+    """Fetch all NSE equity listings with summary data.
 
-    Returns summary financial metrics and AI ratings for all Nifty 500
-    constituent stocks. Data is cached for 24 hours.
+    Returns lightweight master-list data (symbol + company) for all NSE
+    listings (~2600). No per-stock live quote here — 2600 yfinance calls
+    would exceed the 5 req/s NSE budget and Lambda timeout. Full
+    fundamentals load on demand via GET /api/screener/{ticker}.
+    Data is cached for 24 hours.
     """
     nse_client: NSEClient = request.app.state.nse_client
     cache: CacheManager = request.app.state.cache
@@ -176,14 +179,26 @@ async def get_all_tickers(request: Request):
         if not symbol:
             continue
 
+        # ponytail: master rows carry companyName; legacy NSE rows carry meta.companyName.
+        meta = item.get("meta")
+        company_name = (
+            item.get("companyName")
+            or item.get("company_name")
+            or (meta.get("companyName") if isinstance(meta, dict) else None)
+            or symbol
+        )
+        # market_cap_cr (Cr) -> INR to match TickerSummary unit.
+        try:
+            market_cap = float(item.get("market_cap_cr") or item.get("totalTradedValue") or 0) * 1e7
+        except (TypeError, ValueError):
+            market_cap = 0.0
+
         tickers.append(
             TickerSummary(
                 ticker=symbol,
-                company_name=item.get("meta", {}).get("companyName", symbol)
-                if isinstance(item.get("meta"), dict)
-                else symbol,
-                market_cap=float(item.get("totalTradedValue", 0)),
-                pe_ratio=float(item.get("perChange365d", 0)),
+                company_name=company_name,
+                market_cap=market_cap,
+                pe_ratio=float(item.get("perChange365d", 0) or 0),
                 roe=0.0,
                 roce=0.0,
                 dividend_yield=0.0,

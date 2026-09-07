@@ -54,6 +54,7 @@ cp "${SCRIPT_DIR}/cache.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/rate_limiter.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/schemas.py" "${PACKAGE_DIR}/"
 cp -r "${SCRIPT_DIR}/ml_models" "${PACKAGE_DIR}/ml_models"
+cp -r "${SCRIPT_DIR}/data" "${PACKAGE_DIR}/data"
 
 # Remove unnecessary files to minimize package size
 echo "[4/5] Optimizing package size..."

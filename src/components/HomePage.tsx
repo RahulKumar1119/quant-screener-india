@@ -22,12 +22,12 @@ const FEATURES = [
   { icon: "🧠", title: "ML Stock Ratings", description: "XGBoost multi-class classifier: STRONG BUY → SELL" },
   { icon: "🌐", title: "Macro Resilience", description: "TFT model with RBI REPO + sector indices → score 0-100" },
   { icon: "✨", title: "AI Summaries", description: "Gemma 3 4B SEBI-style fundamental narrative generation" },
-  { icon: "🔍", title: "Custom Screener", description: "Text queries across Nifty 500: PE < 25 AND ROE > 15" },
+  { icon: "🔍", title: "Custom Screener", description: "Text queries across NSE: PE < 25 AND ROE > 15" },
   { icon: "🇮🇳", title: "Indian Native", description: "₹ Crores, NSE symbols, weekend-skipping date axes" },
 ];
 
 const STATS = [
-  { end: 500, suffix: "+", label: "NSE Stocks" },
+  { end: 2600, suffix: "+", label: "NSE Stocks" },
   { end: 4, suffix: "", label: "ML Models" },
   { end: 7, suffix: " Days", label: "Price Forecast" },
   { end: 100, suffix: "", label: "TFT Score Range" },

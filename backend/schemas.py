@@ -222,7 +222,7 @@ class AllTickersResponse(BaseModel):
 
     tickers: List[TickerSummary] = Field(
         ...,
-        description="List of all Nifty 500 constituent summaries",
+        description="List of all NSE listing summaries",
     )
 
 

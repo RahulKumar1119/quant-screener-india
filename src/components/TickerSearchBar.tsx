@@ -4,7 +4,7 @@ import { fetchAllTickers } from "../api/client";
 import type { TickerSummary } from "../types/index";
 
 /**
- * Search input with typeahead suggestions filtered from the Nifty 500 list.
+ * Search input with typeahead suggestions filtered from the full NSE list.
  * Filters suggestions as case-insensitive substring match on ticker symbol.
  * On selection, navigates to /:ticker route.
  * Premium: focus width expansion, accent ring, glass dropdown, fade transitions.

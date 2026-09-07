@@ -38,7 +38,7 @@ export function CustomScreenerPage() {
           Custom Screener
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 pl-3">
-          Build queries to filter Nifty 500 tickers by financial metrics and AI scores.
+          Build queries to filter NSE tickers by financial metrics and AI scores.
         </p>
       </div>
 

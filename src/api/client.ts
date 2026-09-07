@@ -102,7 +102,7 @@ export async function fetchTickerData(ticker: string): Promise<TickerResponse> {
 }
 
 /**
- * Fetch summary data for all tickers (Nifty 500 constituents).
+ * Fetch summary data for all tickers (all NSE listings).
  *
  * GET /api/screener/all
  *

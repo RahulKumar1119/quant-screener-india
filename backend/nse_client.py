@@ -7,12 +7,19 @@ NSE symbols are accessed with .NS suffix (e.g., RELIANCE.NS).
 
 from __future__ import annotations
 
+import csv
 import logging
+from pathlib import Path
 from typing import Optional
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+# ponytail: bundled master (~2583 rows) read per-process, not per-request.
+# Regen: fetch EQUITY_L.csv, merge market caps. No live NSE call in Lambda (blocked IPs).
+_MASTER_CSV = Path(__file__).parent / "data" / "nse_equity_master.csv"
+_CACHED_MASTER: Optional[list[dict]] = None
 
 _SECTOR_ESTIMATES = {
     "NIFTY BANK": 52000.0,
@@ -180,28 +187,46 @@ class NSEClient:
             return []
 
     def get_nifty500_constituents(self) -> list[dict]:
-        """Return a static list of major NSE stocks.
+        """Return all NSE equity listings (~2600) from bundled master CSV.
 
-        Yahoo Finance doesn't provide index constituents, so we return
-        a curated list of top Indian stocks.
+        Keeps the old name so app.py / cache keys work unchanged.
+        Shape keeps legacy keys (symbol, meta.companyName) plus
+        companyName / market_cap_cr for the /all endpoint.
         """
-        top_stocks = [
-            "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
-            "HINDUNILVR", "SBIN", "BHARTIARTL", "ITC", "KOTAKBANK",
-            "LT", "HCLTECH", "AXISBANK", "ASIANPAINT", "MARUTI",
-            "SUNPHARMA", "TITAN", "BAJFINANCE", "WIPRO", "ULTRACEMCO",
+        global _CACHED_MASTER
+        if _CACHED_MASTER is not None:
+            return _CACHED_MASTER
+
+        try:
+            with open(_MASTER_CSV, newline="", encoding="utf-8") as f:
+                out = [
+                    {
+                        "symbol": r["symbol"],
+                        "companyName": r["company_name"] or r["symbol"],
+                        "meta": {"companyName": r["company_name"] or r["symbol"]},
+                        "isin": r.get("isin", ""),
+                        "series": r.get("series", ""),
+                        "market_cap_cr": float(r.get("market_cap_cr") or 0),
+                        "lastPrice": 0,
+                        "pChange": 0,
+                    }
+                    for r in csv.DictReader(f)
+                    if r.get("symbol")
+                ]
+            if out:
+                logger.info("Loaded %d NSE listings from bundled master", len(out))
+                _CACHED_MASTER = out
+                return out
+        except Exception as exc:
+            logger.warning("Bundled NSE master unreadable (%s), using fallback", exc)
+
+        fallback = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK"]
+        _CACHED_MASTER = [
+            {"symbol": s, "companyName": s, "meta": {"companyName": s},
+             "lastPrice": 0, "pChange": 0}
+            for s in fallback
         ]
-
-        constituents = []
-        for sym in top_stocks:
-            constituents.append({
-                "symbol": sym,
-                "meta": {"companyName": sym},
-                "lastPrice": 0,
-                "pChange": 0,
-            })
-
-        return constituents
+        return _CACHED_MASTER
 
     def get_rbi_repo_rate(self) -> float:
         """Return current RBI repo rate (hardcoded, changes infrequently)."""
