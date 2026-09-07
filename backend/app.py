@@ -315,8 +315,14 @@ async def get_ticker(ticker: str, request: Request):
     tft_model: TFTModel = request.app.state.tft
     gemma_model: GemmaModel = request.app.state.gemma
 
-    # XGBoost: rating from financials
-    xgboost_result = safe_predict(xgboost_model.predict, raw_financials)
+    # XGBoost: rating from financials + stock data
+    xgboost_stock_data = {
+        "symbol": ticker,
+        "pe_ratio": profile.pe_ratio,
+        "roe": profile.roe,
+        "price_change": float(price_info.get("pChange", 0)),
+    }
+    xgboost_result = safe_predict(xgboost_model.predict, raw_financials, xgboost_stock_data)
     xgboost_output: Optional[XGBoostOutput] = None
     if xgboost_result:
         xgboost_output = XGBoostOutput(

@@ -103,32 +103,32 @@ class XGBoostModel:
         return self._heuristic_rating(stock_data or {})
 
     def _heuristic_rating(self, stock_data: dict) -> dict:
-        """Produce a stock rating from PE, ROE, and momentum heuristics.
+        """Produce a stock rating from PE, ROE, and real price momentum.
 
-        Scoring:
-        - Low PE + High ROE + Positive momentum = STRONG BUY
-        - Moderate fundamentals = BUY/HOLD
-        - High PE + Low ROE + Negative momentum = SELL
+        Uses yfinance to fetch 30-day momentum for more meaningful signals.
         """
         score = 0  # -10 to +10 scale
 
         pe = stock_data.get("pe_ratio", 20)
         roe = stock_data.get("roe", 10)
-        momentum = stock_data.get("price_change", 0)
+        symbol = stock_data.get("symbol", "")
+
+        # Get real momentum from yfinance
+        momentum_7d, momentum_30d = self._get_momentum(symbol)
 
         # PE scoring
         if pe <= 0:
-            score -= 2  # Negative PE = loss-making
+            score -= 2
         elif pe < 12:
-            score += 3  # Deep value
+            score += 3
         elif pe < 20:
-            score += 2  # Reasonably valued
+            score += 2
         elif pe < 30:
-            score += 0  # Fair
+            score += 0
         elif pe < 50:
-            score -= 1  # Expensive
+            score -= 1
         else:
-            score -= 3  # Very expensive
+            score -= 3
 
         # ROE scoring
         if roe > 25:
@@ -142,23 +142,39 @@ class XGBoostModel:
         else:
             score -= 2
 
-        # Momentum scoring
-        if momentum > 3:
+        # 7-day momentum scoring (short-term signal)
+        if momentum_7d > 5:
             score += 2
-        elif momentum > 0:
+        elif momentum_7d > 2:
             score += 1
-        elif momentum > -3:
+        elif momentum_7d > -2:
+            score += 0
+        elif momentum_7d > -5:
             score -= 1
         else:
             score -= 2
 
+        # 30-day momentum scoring (stronger signal)
+        if momentum_30d > 10:
+            score += 3
+        elif momentum_30d > 5:
+            score += 2
+        elif momentum_30d > 0:
+            score += 1
+        elif momentum_30d > -5:
+            score -= 1
+        elif momentum_30d > -10:
+            score -= 2
+        else:
+            score -= 3
+
         # Map score to rating
-        if score >= 5:
+        if score >= 6:
             rating = "STRONG BUY"
-            confidence = min(0.92, 0.7 + score * 0.03)
-        elif score >= 2:
+            confidence = min(0.92, 0.75 + score * 0.02)
+        elif score >= 3:
             rating = "BUY"
-            confidence = min(0.85, 0.6 + score * 0.04)
+            confidence = min(0.85, 0.65 + score * 0.03)
         elif score >= -1:
             rating = "HOLD"
             confidence = 0.55 + abs(score) * 0.05
@@ -167,6 +183,35 @@ class XGBoostModel:
             confidence = min(0.88, 0.6 + abs(score) * 0.04)
 
         return {"rating": rating, "confidence": round(confidence, 2)}
+
+    def _get_momentum(self, symbol: str) -> tuple:
+        """Fetch 7-day and 30-day price momentum from yfinance.
+
+        Returns (momentum_7d, momentum_30d) as percentage changes.
+        """
+        if not symbol:
+            return (0.0, 0.0)
+
+        try:
+            import yfinance as yf
+            import pandas as pd
+
+            df = yf.download(f"{symbol}.NS", period="35d", progress=False, auto_adjust=True)
+            if df.empty or len(df) < 7:
+                return (0.0, 0.0)
+
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
+            close = df["Close"].values.flatten()
+
+            mom_7d = (close[-1] / close[-7] - 1) * 100 if len(close) >= 7 else 0
+            mom_30d = (close[-1] / close[0] - 1) * 100 if len(close) >= 2 else 0
+
+            return (round(mom_7d, 2), round(mom_30d, 2))
+
+        except Exception:
+            return (0.0, 0.0)
 
     def _extract_features(self, financials: list[dict]) -> list[float]:
         """Extract feature vector from quarterly financial data.
