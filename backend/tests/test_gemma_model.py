@@ -97,12 +97,10 @@ class TestGemmaModelGenerateSummary:
 
         response_body = json.dumps(
             {
-                "candidates": [
+                "choices": [
                     {
-                        "content": {
-                            "parts": [
-                                {"text": "Based on current fundamentals, JNKINDIA demonstrates strong growth."}
-                            ]
+                        "message": {
+                            "content": "Based on current fundamentals, JNKINDIA demonstrates strong growth."
                         }
                     }
                 ]
@@ -165,7 +163,7 @@ class TestGemmaModelGenerateSummary:
         mock_bedrock = MagicMock()
         mock_client.return_value = mock_bedrock
 
-        response_body = json.dumps({"candidates": []}).encode()
+        response_body = json.dumps({"choices": []}).encode()
         mock_response = MagicMock()
         mock_response.read.return_value = response_body
         mock_bedrock.invoke_model.return_value = {"body": mock_response}
@@ -194,7 +192,7 @@ class TestGemmaModelGenerateSummary:
         mock_client.return_value = mock_bedrock
 
         response_body = json.dumps(
-            {"candidates": [{"content": {"parts": [{"text": "Summary"}]}}]}
+            {"choices": [{"message": {"content": "Summary"}}]}
         ).encode()
         mock_response = MagicMock()
         mock_response.read.return_value = response_body
@@ -204,7 +202,7 @@ class TestGemmaModelGenerateSummary:
         model.generate_summary("JNKINDIA", SAMPLE_FINANCIALS, SAMPLE_QUOTE, SAMPLE_RATING)
 
         call_kwargs = mock_bedrock.invoke_model.call_args[1]
-        assert call_kwargs["modelId"] == "google/gemma-3-4b-it"
+        assert call_kwargs["modelId"] == "google.gemma-3-27b-it"
         assert call_kwargs["contentType"] == "application/json"
         assert call_kwargs["accept"] == "application/json"
 
@@ -214,7 +212,7 @@ class TestGemmaModelGenerateSummary:
         mock_client.return_value = mock_bedrock
 
         response_body = json.dumps(
-            {"candidates": [{"content": {"parts": [{"text": "Summary"}]}}]}
+            {"choices": [{"message": {"content": "Summary"}}]}
         ).encode()
         mock_response = MagicMock()
         mock_response.read.return_value = response_body
@@ -225,8 +223,7 @@ class TestGemmaModelGenerateSummary:
 
         call_kwargs = mock_bedrock.invoke_model.call_args[1]
         body = json.loads(call_kwargs["body"])
-        assert "contents" in body
-        assert body["contents"][0]["role"] == "user"
-        assert "generationConfig" in body
-        assert body["generationConfig"]["maxOutputTokens"] == 300
-        assert body["generationConfig"]["temperature"] == 0.3
+        assert "messages" in body
+        assert body["messages"][0]["role"] == "user"
+        assert body["max_tokens"] == 300
+        assert body["temperature"] == 0.3

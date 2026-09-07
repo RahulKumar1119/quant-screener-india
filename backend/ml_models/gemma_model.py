@@ -44,7 +44,7 @@ class GemmaModel:
                 retries={"max_attempts": 1},
             ),
         )
-        self.model_id = "google/gemma-3-4b-it"
+        self.model_id = "google.gemma-3-27b-it"
 
     def generate_summary(
         self,
@@ -80,26 +80,20 @@ class GemmaModel:
                 accept="application/json",
                 body=json.dumps(
                     {
-                        "contents": [
-                            {"role": "user", "parts": [{"text": prompt}]}
+                        "messages": [
+                            {"role": "user", "content": prompt}
                         ],
-                        "generationConfig": {
-                            "maxOutputTokens": 300,
-                            "temperature": 0.3,
-                        },
+                        "max_tokens": 300,
+                        "temperature": 0.3,
                     }
                 ),
             )
             result = json.loads(response["body"].read())
-            # Extract generated text from Gemma response format
-            candidates = result.get("candidates", [])
-            if not candidates:
+            # Bedrock Gemma returns OpenAI-style chat completion
+            choices = result.get("choices", [])
+            if not choices:
                 return ""
-            content = candidates[0].get("content", {})
-            parts = content.get("parts", [])
-            if not parts:
-                return ""
-            return parts[0].get("text", "")
+            return choices[0].get("message", {}).get("content", "") or ""
 
         except ClientError as e:
             logger.warning(
