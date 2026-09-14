@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -24,6 +25,8 @@ from rate_limiter import RateLimiter
 from schemas import (
     AllTickersResponse,
     HistoricalData,
+    MarketIndicesResponse,
+    MarketIndex,
     QuarterlyFinancial,
     TFTOutput,
     TickerProfile,
@@ -210,6 +213,47 @@ async def get_all_tickers(request: Request):
         )
 
     return AllTickersResponse(tickers=tickers)
+
+
+@app.get("/api/market/indices", response_model=MarketIndicesResponse)
+async def get_market_indices(request: Request):
+    """Fetch live headline index levels (NIFTY 50, SENSEX, sectorals).
+
+    Six Yahoo Finance lookups, cached for 15 minutes so the landing tape
+    stays accurate through the session and refreshes every day. A partial
+    result is returned when some indices fail; 503 only when all fail.
+    """
+    import asyncio
+
+    nse_client: NSEClient = request.app.state.nse_client
+    cache: CacheManager = request.app.state.cache
+
+    try:
+        indices = await asyncio.to_thread(
+            cache.get_or_fetch,
+            "market_indices",
+            "market_indices",
+            nse_client.get_market_indices,
+        )
+    except Exception as e:
+        logger.error("Failed to fetch market indices: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail="Market index data is currently unavailable. Please retry later.",
+            headers={"Retry-After": "30"},
+        )
+
+    if not indices:
+        raise HTTPException(
+            status_code=503,
+            detail="Market index data is currently unavailable. Please retry later.",
+            headers={"Retry-After": "30"},
+        )
+
+    return MarketIndicesResponse(
+        indices=[MarketIndex(**item) for item in indices],
+        as_of=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+    )
 
 
 @app.get("/api/screener/{ticker}", response_model=TickerResponse)

@@ -5,17 +5,9 @@ import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { TextPlugin } from "gsap/TextPlugin";
 import { SAMPLE_ALL_TICKERS, SAMPLE_TICKER } from "../mocks/sampleData";
+import { useMarketIndices } from "../hooks/useMarketIndices";
 
 gsap.registerPlugin(ScrollTrigger, TextPlugin, useGSAP);
-
-const MARKET_INDICES = [
-  { name: "NIFTY 50", value: "22,147.00", change: "+0.82%", positive: true },
-  { name: "SENSEX", value: "72,831.94", change: "+0.76%", positive: true },
-  { name: "NIFTY BANK", value: "47,562.30", change: "-0.21%", positive: false },
-  { name: "NIFTY IT", value: "38,920.15", change: "+1.34%", positive: true },
-  { name: "NIFTY PHARMA", value: "19,845.60", change: "+0.45%", positive: true },
-  { name: "NIFTY AUTO", value: "24,380.50", change: "+0.92%", positive: true },
-];
 
 const FEATURES = [
   { icon: "📈", title: "AI Price Projections", description: "ML-powered price forecasts from real NSE OHLC data" },
@@ -70,6 +62,8 @@ export function HomePage() {
   const container = useRef<HTMLDivElement>(null);
   const trendingStocks = SAMPLE_ALL_TICKERS.tickers.slice(0, 8);
   const [heroQuery, setHeroQuery] = useState("");
+  const { indices: marketIndices, asOf: marketAsOf, live: marketLive } =
+    useMarketIndices();
   const verdict = SAMPLE_TICKER;
   const verdictChange =
     verdict.historical.close_prices.length >= 2
@@ -280,18 +274,39 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ════════ MARKET TAPE (static) ════════ */}
+      {/* ════════ MARKET TAPE (live, refreshed daily) ════════ */}
       <section aria-label="Market snapshot" className="border-b border-white/5 bg-black/60 py-4">
-        <div className="mx-auto flex max-w-7xl flex-wrap gap-x-10 gap-y-3 px-4">
-          {MARKET_INDICES.map((idx) => (
-            <div key={idx.name} className="flex items-baseline gap-3">
-              <span className="text-xs font-medium text-[#9AA4B2]">{idx.name}</span>
-              <span className="text-sm font-semibold tabular-nums text-gray-100">{idx.value}</span>
-              <span className={`text-xs font-semibold tabular-nums ${idx.positive ? "text-[#2FA36B]" : "text-[#C2503A]"}`}>
-                {idx.change}
-              </span>
-            </div>
-          ))}
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="mb-3 flex items-baseline gap-3">
+            <p className="text-xs text-[#9AA4B2]">
+              {marketAsOf ? `As of ${marketAsOf}` : "Latest available levels"}
+            </p>
+            <p
+              className={`text-xs font-medium ${marketLive ? "text-[#2FA36B]" : "text-[#C8A96A]"}`}
+              role="status"
+            >
+              {marketLive ? "Live" : "Showing last available data"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-x-10 gap-y-3">
+            {marketIndices.map((idx) => (
+              <div key={idx.name} className="flex items-baseline gap-3">
+                <span className="text-xs font-medium text-[#9AA4B2]">{idx.name}</span>
+                <span className="text-sm font-semibold tabular-nums text-gray-100">
+                  {idx.value.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span
+                  className={`text-xs font-semibold tabular-nums ${idx.change_pct >= 0 ? "text-[#2FA36B]" : "text-[#C2503A]"}`}
+                >
+                  {idx.change_pct >= 0 ? "+" : ""}
+                  {idx.change_pct.toFixed(2)}%
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

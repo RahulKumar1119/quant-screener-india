@@ -29,6 +29,16 @@ _SECTOR_ESTIMATES = {
     "NIFTY FMCG": 56000.0,
 }
 
+# Display name -> Yahoo Finance symbol for headline market indices.
+INDEX_SYMBOLS = {
+    "NIFTY 50": "^NSEI",
+    "SENSEX": "^BSESN",
+    "NIFTY BANK": "^NSEBANK",
+    "NIFTY IT": "^CNXIT",
+    "NIFTY PHARMA": "^CNXPHARMA",
+    "NIFTY AUTO": "^CNXAUTO",
+}
+
 
 class NSEClient:
     """Fetches market data using yfinance (Yahoo Finance).
@@ -235,3 +245,32 @@ class NSEClient:
     def get_sector_indices(self) -> dict[str, float]:
         """Return estimated sector index values."""
         return _SECTOR_ESTIMATES.copy()
+
+    def get_market_indices(self) -> list[dict]:
+        """Fetch live headline index levels from Yahoo Finance.
+
+        Returns one dict per index in INDEX_SYMBOLS order with keys
+        name, value, change_pct. Indices that fail to fetch are skipped
+        so a single Yahoo failure never blanks the whole tape.
+        """
+        import yfinance as yf
+
+        results = []
+        for name, yf_symbol in INDEX_SYMBOLS.items():
+            try:
+                hist = yf.Ticker(yf_symbol).history(period="5d", interval="1d")
+                if hist is None or hist.empty or len(hist) < 1:
+                    continue
+                closes = hist["Close"].dropna()
+                if len(closes) < 1:
+                    continue
+                latest = float(closes.iloc[-1])
+                prev = float(closes.iloc[-2]) if len(closes) >= 2 else latest
+                change_pct = ((latest - prev) / abs(prev) * 100) if prev else 0.0
+                results.append(
+                    {"name": name, "value": round(latest, 2), "change_pct": round(change_pct, 2)}
+                )
+            except Exception as exc:
+                logger.warning("index fetch failed for %s (%s): %s", name, yf_symbol, exc)
+                continue
+        return results

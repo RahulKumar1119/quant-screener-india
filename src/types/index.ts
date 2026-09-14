@@ -75,6 +75,19 @@ export interface AllTickersResponse {
   tickers: TickerSummary[];
 }
 
+// Market index snapshot for the landing tape
+export interface MarketIndex {
+  name: string;
+  value: number;
+  change_pct: number;
+}
+
+// Response from /api/market/indices
+export interface MarketIndicesResponse {
+  indices: MarketIndex[];
+  as_of: string;
+}
+
 // Error response with optional retry_after
 export interface ErrorResponse {
   detail: string;

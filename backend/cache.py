@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # TTL durations per tier (seconds)
 TTL_CONFIG = {
     "live_quotes": 300,       # 5 minutes
+    "market_indices": 900,    # 15 minutes — fresh through the session, new every day
     "historical": 86400,      # 24 hours
     "financials": 86400,      # 24 hours
     "ml_predictions": 3600,   # 1 hour

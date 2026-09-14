@@ -1,4 +1,4 @@
-import type { TickerResponse, AllTickersResponse, ErrorResponse } from "../types/index";
+import type { TickerResponse, AllTickersResponse, ErrorResponse, MarketIndicesResponse } from "../types/index";
 
 const BASE_URL = "https://z3d366wlgi.execute-api.ap-south-1.amazonaws.com";
 
@@ -136,5 +136,49 @@ export async function fetchAllTickers(): Promise<AllTickersResponse> {
   }
 
   const data: AllTickersResponse = await response.json();
+  return data;
+}
+
+/**
+ * Fetch live headline index levels for the landing tape.
+ *
+ * GET /api/market/indices
+ *
+ * @throws {ApiError} on 503 or other HTTP errors
+ * @throws {Error} on network failure or timeout (10s)
+ */
+export async function fetchMarketIndices(): Promise<MarketIndicesResponse> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/api/market/indices`, {
+      signal: controller.signal,
+    });
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(
+        `Request timed out while fetching market indices. Please try again.`
+      );
+    }
+    throw new Error(
+      `Network error: Failed to fetch market indices. ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    const errorResponse = await parseErrorResponse(response);
+    throw new ApiError(errorResponse, response.status);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("Network error: Server returned non-JSON response");
+  }
+
+  const data: MarketIndicesResponse = await response.json();
   return data;
 }

@@ -239,3 +239,37 @@ class ErrorResponse(BaseModel):
         description="Suggested retry delay in seconds (for 503/429 responses)",
         examples=[30],
     )
+
+
+class MarketIndex(BaseModel):
+    """Single market index snapshot (e.g., NIFTY 50)."""
+
+    name: str = Field(
+        ...,
+        description="Index display name",
+        examples=["NIFTY 50"],
+    )
+    value: float = Field(
+        ...,
+        description="Latest index close level",
+        examples=[22147.0],
+    )
+    change_pct: float = Field(
+        ...,
+        description="Day change vs previous close, in percent",
+        examples=[0.82],
+    )
+
+
+class MarketIndicesResponse(BaseModel):
+    """Response for GET /api/market/indices."""
+
+    indices: List[MarketIndex] = Field(
+        ...,
+        description="Live index snapshots in display order",
+    )
+    as_of: str = Field(
+        ...,
+        description="UTC date of the snapshot (YYYY-MM-DD)",
+        examples=["2026-09-14"],
+    )
