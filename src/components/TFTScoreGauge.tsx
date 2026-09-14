@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { PieChart, Pie, Cell } from "recharts";
 import type { TFTOutput, TrendOutlook } from "../types/index";
 
 interface TFTScoreGaugeProps {
@@ -7,10 +6,18 @@ interface TFTScoreGaugeProps {
 }
 
 const trendColors: Record<TrendOutlook, string> = {
-  Bullish: "text-green-600 dark:text-green-400",
-  Bearish: "text-red-600 dark:text-red-400",
-  Neutral: "text-amber-600 dark:text-amber-400",
+  Bullish: "text-[#2FA36B]",
+  Bearish: "text-[#C2503A]",
+  Neutral: "text-[#C8A96A]",
 };
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
@@ -18,6 +25,11 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
 
   useEffect(() => {
     if (!tftScore) return;
+
+    if (prefersReducedMotion()) {
+      setAnimatedScore(tftScore.score);
+      return;
+    }
 
     const target = tftScore.score;
     const duration = 800;
@@ -41,9 +53,10 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
 
   if (!tftScore) {
     return (
-      <div className="flex items-center justify-center h-full p-6">
-        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-          ML analysis unavailable
+      <div className="py-1">
+        <p className="text-sm font-medium text-gray-300">Macro resilience</p>
+        <p className="mt-1 text-sm text-[#9AA4B2]">
+          Model output unavailable, showing price history.
         </p>
       </div>
     );
@@ -51,57 +64,43 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
 
   const { score, trend_outlook } = tftScore;
 
-  // Semi-circle gauge data: filled portion + remaining
-  const gaugeData = [
-    { name: "score", value: animatedScore },
-    { name: "remaining", value: 100 - animatedScore },
-  ];
-
-  // Determine fill color based on score
-  const getScoreColor = (s: number): string => {
-    if (s >= 65) return "#16a34a"; // green-600
-    if (s <= 35) return "#dc2626"; // red-600
-    return "#d97706"; // amber-600
-  };
-
-  const fillColor = getScoreColor(score);
-
-  // Theme-aware remaining color for gauge background
-  const isDark = document.documentElement.classList.contains("dark");
-  const remainingColor = isDark ? "#374151" : "#e5e7eb"; // gray-700 / gray-200
-
   return (
-    <div className="flex flex-col items-center p-4">
-      <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-        TFT Macro Resilience
-      </p>
-      <div className="relative">
-        <PieChart width={160} height={90}>
-          <Pie
-            data={gaugeData}
-            cx={80}
-            cy={80}
-            startAngle={180}
-            endAngle={0}
-            innerRadius={50}
-            outerRadius={70}
-            paddingAngle={0}
-            dataKey="value"
-            stroke="none"
-          >
-            <Cell fill={fillColor} />
-            <Cell fill={remainingColor} />
-          </Pie>
-        </PieChart>
-        <div className="absolute inset-0 flex items-end justify-center pb-1">
-          <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {animatedScore}
-          </span>
-        </div>
+    <div className="py-1">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="text-sm font-medium text-gray-300">Macro resilience</p>
+        <p className="text-xs tabular-nums text-[#9AA4B2]">
+          Scale 0 to 100
+        </p>
       </div>
-      <p className={`text-sm font-semibold mt-1 ${trendColors[trend_outlook]}`}>
-        {trend_outlook}
-      </p>
+      <div className="mt-2 flex items-baseline gap-3">
+        <span className="text-4xl font-bold tabular-nums text-gray-100">
+          {animatedScore}
+        </span>
+        <span className={`text-sm font-semibold ${trendColors[trend_outlook]}`}>
+          {trend_outlook}
+        </span>
+      </div>
+      <div
+        className="relative mt-3 h-[3px] rounded-full bg-white/10"
+        role="meter"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={score}
+        aria-label={`Macro resilience ${score} of 100, ${trend_outlook}`}
+      >
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-[#C8A96A]"
+          style={{ width: `${Math.max(0, Math.min(100, animatedScore))}%` }}
+        />
+        {[35, 65].map((tick) => (
+          <span
+            key={tick}
+            aria-hidden="true"
+            className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-white/25"
+            style={{ left: `${tick}%` }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

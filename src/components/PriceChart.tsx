@@ -7,40 +7,42 @@ interface PriceChartProps {
   historical: HistoricalData;
 }
 
-function getCSSColor(varName: string): string {
-  const raw = getComputedStyle(document.documentElement)
-    .getPropertyValue(varName)
-    .trim();
-  if (!raw) return "#ffffff";
-  // Convert "R G B" triplet to hex or rgb()
-  const parts = raw.split(" ").map(Number);
-  if (parts.length === 3) {
-    return `rgb(${parts[0]}, ${parts[1]}, ${parts[2]})`;
-  }
-  return raw;
-}
-
 export function PriceChart({ historical }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
+  const points = historical.dates.map((date, i) => ({
+    time: date as string,
+    value: historical.close_prices[i],
+  }));
+  const dataKey = `${historical.dates.length}:${historical.dates[0] ?? ""}:${historical.dates[historical.dates.length - 1] ?? ""}:${historical.close_prices[0] ?? ""}:${historical.close_prices[historical.close_prices.length - 1] ?? ""}`;
 
-    const bgColor = getCSSColor("--color-surface-elevated");
-    const textColor = getCSSColor("--color-border");
+  const direction: "up" | "down" | "flat" =
+    points.length >= 2
+      ? points[points.length - 1].value > points[0].value
+        ? "up"
+        : points[points.length - 1].value < points[0].value
+          ? "down"
+          : "flat"
+      : "flat";
+  const lineColor =
+    direction === "up" ? "#2FA36B" : direction === "down" ? "#C2503A" : "#9AA4B2";
+
+  useEffect(() => {
+    if (!containerRef.current || points.length === 0) return;
+
     const isDark = document.documentElement.classList.contains("dark");
-    const gridColor = isDark ? "rgba(51, 65, 85, 0.5)" : "rgba(226, 232, 240, 0.8)";
+    const gridColor = isDark ? "rgba(154, 164, 178, 0.14)" : "rgba(91, 100, 114, 0.18)";
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
-      height: 350,
+      height: 260,
       layout: {
-        background: { color: bgColor },
-        textColor: isDark ? "#f3f4f6" : "#374151",
+        background: { color: "transparent" },
+        textColor: isDark ? "#9AA4B2" : "#5b6472",
       },
       grid: {
-        vertLines: { color: gridColor },
+        vertLines: { visible: false },
         horzLines: { color: gridColor },
       },
       timeScale: {
@@ -51,18 +53,15 @@ export function PriceChart({ historical }: PriceChartProps) {
 
     chartRef.current = chart;
 
-    // Historical price series (solid gray line)
+    // Single trend line; color carries direction so no legend is needed
     const historicalSeries = chart.addLineSeries({
-      color: "#6b7280",
+      color: lineColor,
       lineWidth: 2,
       lineStyle: LineStyle.Solid,
+      priceLineVisible: false,
     });
 
-    const historicalData = historical.dates.map((date, i) => ({
-      time: date as string,
-      value: historical.close_prices[i],
-    }));
-    historicalSeries.setData(historicalData);
+    historicalSeries.setData(points);
 
     chart.timeScale().fitContent();
 
@@ -78,17 +77,20 @@ export function PriceChart({ historical }: PriceChartProps) {
       chart.remove();
       chartRef.current = null;
     };
-  }, [historical]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataKey]);
+
+  if (points.length === 0) {
+    return (
+      <p className="text-sm text-[#9AA4B2]">
+        No price history for this period.
+      </p>
+    );
+  }
 
   return (
-    <div className="w-full min-w-0 animate-fade-in">
-      <div className="flex items-center gap-4 mb-2 text-xs text-gray-500 dark:text-gray-400">
-        <span className="flex items-center gap-1">
-          <span className="inline-block w-4 h-0.5 bg-gray-500 rounded-full" />
-          Historical (30d)
-        </span>
-      </div>
-      <div ref={containerRef} className="w-full min-w-0 rounded-xl overflow-hidden" />
+    <div className="w-full min-w-0">
+      <div ref={containerRef} className="w-full min-w-0 overflow-hidden" />
     </div>
   );
 }
