@@ -1,10 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { TextPlugin } from "gsap/TextPlugin";
-import { SAMPLE_ALL_TICKERS } from "../mocks/sampleData";
+import { SAMPLE_ALL_TICKERS, SAMPLE_TICKER } from "../mocks/sampleData";
 
 gsap.registerPlugin(ScrollTrigger, TextPlugin, useGSAP);
 
@@ -33,82 +33,55 @@ const STATS = [
   { end: 100, suffix: "", label: "TFT Score Range" },
 ];
 
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const w = 120;
+  const h = 36;
+  const step = w / (values.length - 1);
+  const points = values
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / span) * (h - 4) - 2).toFixed(1)}`)
+    .join(" ");
+  const up = values[values.length - 1] >= values[0];
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      fill="none"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <polyline
+        points={points}
+        stroke={up ? "#2FA36B" : "#C2503A"}
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function HomePage() {
   const navigate = useNavigate();
   const container = useRef<HTMLDivElement>(null);
   const trendingStocks = SAMPLE_ALL_TICKERS.tickers.slice(0, 8);
+  const [heroQuery, setHeroQuery] = useState("");
+  const verdict = SAMPLE_TICKER;
+  const verdictChange =
+    verdict.historical.close_prices.length >= 2
+      ? ((verdict.historical.close_prices[verdict.historical.close_prices.length - 1] -
+          verdict.historical.close_prices[0]) /
+          Math.abs(verdict.historical.close_prices[0])) *
+        100
+      : null;
 
   useGSAP(
     () => {
-      // ═══════════════════════════════════════════
-      // HERO: Cinematic entrance with 3D perspective
-      // ═══════════════════════════════════════════
-      const heroTl = gsap.timeline({ defaults: { ease: "power4.out" } });
-
-      // Perspective wrapper
-      gsap.set(".hero-content", { perspective: 800 });
-
-      heroTl
-        // Title lines fly in from 3D space
-        .from(".hero-word", {
-          z: -200,
-          rotationX: 40,
-          opacity: 0,
-          duration: 1.2,
-          stagger: { each: 0.08, from: "start" },
-        })
-        // Subtitle scrambles in (text replace effect)
-        .fromTo(
-          ".hero-subtitle",
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.8 },
-          "-=0.4"
-        )
-        // Buttons spring in
-        .from(".hero-btn", {
-          scale: 0,
-          opacity: 0,
-          duration: 0.6,
-          stagger: 0.2,
-          ease: "elastic.out(1, 0.5)",
-        }, "-=0.3")
-        // Decorative line draws in
-        .from(".hero-line-decoration", {
-          scaleX: 0,
-          duration: 0.8,
-          ease: "power2.inOut",
-        }, "-=0.5");
-
-      // Floating particles
-      gsap.utils.toArray<HTMLElement>(".particle").forEach((p, i) => {
-        gsap.to(p, {
-          y: `random(-50, 50)`,
-          x: `random(-30, 30)`,
-          rotation: `random(-15, 15)`,
-          duration: gsap.utils.random(3, 7),
-          repeat: -1,
-          yoyo: true,
-          ease: "sine.inOut",
-          delay: i * 0.3,
-        });
-      });
-
-      // ═══════════════════════════════════════════
-      // TICKER BAR: Infinite marquee effect
-      // ═══════════════════════════════════════════
-      const tickerInner = document.querySelector(".ticker-inner");
-      if (tickerInner) {
-        gsap.to(".ticker-inner", {
-          xPercent: -50,
-          duration: 25,
-          ease: "none",
-          repeat: -1,
-        });
-      }
-
-      // ═══════════════════════════════════════════
       // STATS: Counter spin-up with scroll trigger
-      // ═══════════════════════════════════════════
       gsap.utils.toArray<HTMLElement>(".counter-value").forEach((el) => {
         const target = parseInt(el.dataset.target || "0", 10);
         gsap.fromTo(
@@ -197,9 +170,7 @@ export function HomePage() {
         scrollTrigger: { trigger: ".features-grid", start: "top 70%" },
       });
 
-      // ═══════════════════════════════════════════
-      // CTA: Parallax + magnetic effect
-      // ═══════════════════════════════════════════
+      // CTA entrance
       gsap.from(".cta-box", {
         y: 80,
         scale: 0.92,
@@ -208,102 +179,115 @@ export function HomePage() {
         ease: "power3.out",
         scrollTrigger: { trigger: ".cta-section", start: "top 80%" },
       });
-
-      // Pulsing CTA button
-      gsap.to(".cta-pulse", {
-        boxShadow: "0 0 40px 8px rgba(99, 102, 241, 0.35)",
-        scale: 1.02,
-        duration: 1.8,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-      });
-
-      // ═══════════════════════════════════════════
-      // SCROLL-LINKED PARALLAX (Hero background)
-      // ═══════════════════════════════════════════
-      gsap.to(".parallax-fast", {
-        y: -200,
-        scrollTrigger: { trigger: container.current, start: "top top", end: "40% top", scrub: 0.5 },
-      });
-      gsap.to(".parallax-slow", {
-        y: -80,
-        scrollTrigger: { trigger: container.current, start: "top top", end: "40% top", scrub: 1.5 },
-      });
     },
     { scope: container }
   );
 
   return (
     <div ref={container} className="min-h-screen overflow-hidden">
-      {/* ════════ HERO ════════ */}
-      <section className="relative min-h-[90vh] flex items-center justify-center py-20">
-        {/* Parallax background elements */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="particle parallax-fast absolute top-[10%] left-[10%] w-4 h-4 rounded-full bg-indigo-500/30" />
-          <div className="particle parallax-fast absolute top-[20%] right-[20%] w-3 h-3 rounded-full bg-violet-500/30" />
-          <div className="particle parallax-slow absolute top-[40%] left-[25%] w-2 h-2 rounded-full bg-purple-500/40" />
-          <div className="particle parallax-slow absolute top-[30%] right-[35%] w-5 h-5 rounded-full bg-indigo-400/20" />
-          <div className="particle absolute top-[60%] left-[60%] w-3 h-3 rounded-full bg-cyan-500/25" />
-          <div className="particle absolute top-[15%] left-[70%] w-2 h-2 rounded-full bg-pink-500/25" />
-          <div className="particle absolute top-[50%] right-[10%] w-4 h-4 rounded-full bg-emerald-500/20" />
-          <div className="particle absolute top-[70%] left-[15%] w-3 h-3 rounded-full bg-amber-500/20" />
-          {/* Large gradient orbs */}
-          <div className="parallax-fast absolute top-0 left-[15%] w-[500px] h-[500px] bg-indigo-600/8 rounded-full blur-[120px]" />
-          <div className="parallax-slow absolute bottom-0 right-[10%] w-[400px] h-[400px] bg-violet-600/8 rounded-full blur-[100px]" />
-        </div>
-
-        <div className="hero-content relative max-w-6xl mx-auto px-4 text-center" style={{ transformStyle: "preserve-3d" }}>
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] mb-8 tracking-tight">
-            <span className="hero-word inline-block text-white">AI-Powered</span>{" "}
-            <span className="hero-word inline-block bg-gradient-to-r from-indigo-600 via-violet-500 to-purple-600 dark:from-indigo-400 dark:via-violet-400 dark:to-purple-400 bg-clip-text text-transparent">Stock</span>{" "}
-            <span className="hero-word inline-block bg-gradient-to-r from-violet-600 to-indigo-600 dark:from-violet-400 dark:to-indigo-400 bg-clip-text text-transparent">Analytics</span>
-            <br />
-            <span className="hero-word inline-block text-3xl md:text-5xl lg:text-6xl font-bold text-gray-400 mt-2">
-              for Indian Markets
-            </span>
+      {/* ════════ HERO: opening-bell verdict ════════ */}
+      <section className="border-b border-white/[0.08] bg-[#0B0D10]">
+        <div className="mx-auto max-w-7xl px-4 py-14 md:py-20">
+          <p className="text-sm text-[#9AA4B2]">
+            Live NSE data with XGBoost ratings and TFT resilience
+          </p>
+          <h1 className="mt-3 max-w-2xl text-4xl font-bold leading-tight text-gray-100 md:text-5xl">
+            See any NSE stock the way an analyst sees it at the opening bell.
           </h1>
 
-          {/* Decorative animated line */}
-          <div className="hero-line-decoration h-1 w-32 mx-auto bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full mb-8" />
-
-          <p className="hero-subtitle text-lg md:text-xl lg:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
-            Real-time NSE data × XGBoost × TFT × Gemma AI — 
-            ratings, resilience scores, and summaries from live market feeds.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-5 justify-center">
+          <form
+            className="mt-8 flex max-w-xl gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const symbol = heroQuery.trim().toUpperCase();
+              if (symbol) navigate(`/${symbol}`);
+            }}
+          >
+            <label htmlFor="hero-ticker-search" className="sr-only">
+              Search an NSE ticker
+            </label>
+            <input
+              id="hero-ticker-search"
+              type="text"
+              value={heroQuery}
+              onChange={(e) => setHeroQuery(e.target.value)}
+              placeholder="Type a ticker, for example RELIANCE"
+              autoComplete="off"
+              spellCheck={false}
+              className="min-h-[48px] flex-1 rounded-[10px] border border-white/15 bg-white/[0.04] px-4 text-[15px] text-gray-100 placeholder:text-[#9AA4B2]/70 focus:border-[#C8A96A]/60 focus:outline-none"
+            />
             <button
-              onClick={() => navigate("/RELIANCE")}
-              className="hero-btn group relative px-10 py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-2xl shadow-indigo-500/30"
+              type="submit"
+              className="min-h-[48px] shrink-0 rounded-[10px] border border-[#C8A96A]/50 px-5 text-[15px] font-semibold text-[#C8A96A] transition-colors hover:bg-[#C8A96A]/10"
             >
-              <span className="relative z-10 flex items-center justify-center gap-3">
-                Explore Stocks
-                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              Analyze
             </button>
-            <button
-              onClick={() => navigate("/screener")}
-              className="hero-btn px-10 py-5 glass font-bold text-lg rounded-2xl hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 text-gray-200"
-            >
-              Custom Screener
-            </button>
+          </form>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-[#9AA4B2]">Try</span>
+            {["RELIANCE", "HDFCBANK", "JNKINDIA"].map((symbol) => (
+              <button
+                key={symbol}
+                type="button"
+                onClick={() => navigate(`/${symbol}`)}
+                className="rounded-md px-2 py-1 font-mono text-[13px] text-gray-300 underline decoration-white/20 underline-offset-4 hover:decoration-[#C8A96A]/70 hover:text-white"
+              >
+                {symbol}
+              </button>
+            ))}
           </div>
+
+          <button
+            type="button"
+            onClick={() => navigate(`/${verdict.ticker}`)}
+            className="mt-8 flex w-full max-w-3xl items-center gap-5 rounded-[14px] border border-white/10 bg-white/[0.02] p-5 text-left transition-colors hover:border-white/20"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-gray-100">
+                {verdict.ticker}
+                <span className="ml-2 font-normal text-[#9AA4B2]">
+                  {verdict.company_name}
+                </span>
+              </p>
+              <p className="mt-2 flex items-baseline gap-3">
+                <span className="text-4xl font-bold tabular-nums text-gray-100">
+                  {verdict.tft_score?.score}
+                </span>
+                <span className="text-sm font-semibold text-[#2FA36B]">
+                  {verdict.tft_score?.trend_outlook}
+                </span>
+                {verdictChange !== null && (
+                  <span className="text-xs tabular-nums text-[#9AA4B2]">
+                    {verdictChange >= 0 ? "+" : ""}
+                    {verdictChange.toFixed(1)}% over the last 30 trading days
+                  </span>
+                )}
+              </p>
+            </div>
+            <span
+              aria-hidden="true"
+              className="-rotate-2 shrink-0 rounded-[6px] border-2 border-[#2FA36B] px-3 py-1 text-sm font-bold tracking-wide text-[#2FA36B]"
+            >
+              {verdict.xgboost?.rating}
+            </span>
+            <span className="hidden sm:block">
+              <Sparkline values={verdict.historical.close_prices} />
+            </span>
+          </button>
+          <p className="mt-3 text-xs text-[#9AA4B2]">
+            Sample verdict from cached data. Open it for the full breakdown.
+          </p>
         </div>
       </section>
 
-      {/* ════════ INFINITE TICKER BAR ════════ */}
-      <section className="border-y border-white/5 bg-black/60 backdrop-blur-lg py-4 overflow-hidden">
-        <div className="ticker-inner flex gap-12 whitespace-nowrap w-max">
-          {/* Duplicate for seamless loop */}
-          {[...MARKET_INDICES, ...MARKET_INDICES].map((idx, i) => (
-            <div key={`${idx.name}-${i}`} className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{idx.name}</span>
-              <span className="text-sm font-black text-gray-100 tabular-nums">{idx.value}</span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${idx.positive ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"}`}>
+      {/* ════════ MARKET TAPE (static) ════════ */}
+      <section aria-label="Market snapshot" className="border-b border-white/5 bg-black/60 py-4">
+        <div className="mx-auto flex max-w-7xl flex-wrap gap-x-10 gap-y-3 px-4">
+          {MARKET_INDICES.map((idx) => (
+            <div key={idx.name} className="flex items-baseline gap-3">
+              <span className="text-xs font-medium text-[#9AA4B2]">{idx.name}</span>
+              <span className="text-sm font-semibold tabular-nums text-gray-100">{idx.value}</span>
+              <span className={`text-xs font-semibold tabular-nums ${idx.positive ? "text-[#2FA36B]" : "text-[#C2503A]"}`}>
                 {idx.change}
               </span>
             </div>
@@ -424,7 +408,7 @@ export function HomePage() {
             </p>
             <button
               onClick={() => navigate("/HDFCBANK")}
-              className="cta-pulse group px-12 py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 hover:scale-105"
+              className="group px-12 py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 hover:scale-105"
             >
               <span className="flex items-center justify-center gap-3">
                 Try HDFC Bank
