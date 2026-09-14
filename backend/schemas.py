@@ -228,7 +228,6 @@ class AllTickersResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     """Error response returned on API failures."""
-
     detail: str = Field(
         ...,
         description="Human-readable error message",
@@ -263,7 +262,6 @@ class MarketIndex(BaseModel):
 
 class MarketIndicesResponse(BaseModel):
     """Response for GET /api/market/indices."""
-
     indices: List[MarketIndex] = Field(
         ...,
         description="Live index snapshots in display order",
@@ -272,4 +270,34 @@ class MarketIndicesResponse(BaseModel):
         ...,
         description="UTC date of the snapshot (YYYY-MM-DD)",
         examples=["2026-09-14"],
+    )
+
+
+class StrongBuyItem(BaseModel):
+    """One row of the nightly STRONG BUY list."""
+
+    ticker: str = Field(..., examples=["HDFCBANK"])
+    company_name: str = Field(..., examples=["HDFC Bank Limited"])
+    rating: str = Field(..., examples=["STRONG BUY"])
+    confidence: float = Field(..., ge=0, le=1, examples=[0.89])
+    tft_score: int = Field(..., ge=0, le=100, examples=[75])
+    tft_trend: str = Field(..., examples=["Bullish"])
+    as_of: str = Field(
+        ...,
+        description="IST date of the scoring run (YYYY-MM-DD)",
+        examples=["2026-09-14"],
+    )
+
+
+class StrongBuysResponse(BaseModel):
+    """Response for GET /api/ratings/strong-buys."""
+
+    as_of: Optional[str] = Field(
+        None,
+        description="IST date of the scoring run, null if never scored",
+    )
+    count: int = Field(..., examples=[7])
+    items: List[StrongBuyItem] = Field(
+        ...,
+        description="STRONG BUY tickers, best confidence first",
     )

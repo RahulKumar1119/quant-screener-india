@@ -105,6 +105,11 @@ class XGBoostModel:
     def _heuristic_rating(self, stock_data: dict) -> dict:
         """Produce a stock rating from PE, ROE, and real price momentum.
 
+        Design: fundamentals anchor (±6), momentum only tilts (±3). The old
+        scheme let 7-day and 30-day momentum stack to -5, so any red week
+        painted quality large-caps SELL. PE bands reflect Nifty reality
+        (index PE ~22-24), not textbook sub-15 value levels.
+
         Uses yfinance to fetch 30-day momentum for more meaningful signals.
         """
         score = 0  # -10 to +10 scale
@@ -116,57 +121,47 @@ class XGBoostModel:
         # Get real momentum from yfinance
         momentum_7d, momentum_30d = self._get_momentum(symbol)
 
-        # PE scoring
+        # PE scoring (max +3): fair multiples are not penalized
         if pe <= 0:
             score -= 2
-        elif pe < 12:
+        elif pe < 15:
             score += 3
-        elif pe < 20:
+        elif pe < 22:
             score += 2
         elif pe < 30:
-            score += 0
-        elif pe < 50:
+            score += 1
+        elif pe < 45:
             score -= 1
         else:
-            score -= 3
+            score -= 2
 
-        # ROE scoring
-        if roe > 25:
+        # ROE scoring (max +3)
+        if roe > 20:
             score += 3
-        elif roe > 18:
+        elif roe > 15:
             score += 2
-        elif roe > 12:
+        elif roe > 10:
             score += 1
         elif roe > 5:
             score += 0
         else:
             score -= 2
 
-        # 7-day momentum scoring (short-term signal)
-        if momentum_7d > 5:
-            score += 2
-        elif momentum_7d > 2:
-            score += 1
-        elif momentum_7d > -2:
-            score += 0
-        elif momentum_7d > -5:
-            score -= 1
-        else:
-            score -= 2
-
-        # 30-day momentum scoring (stronger signal)
-        if momentum_30d > 10:
+        # Blended momentum tilt (max +/-3): one voice, not two stacked.
+        # A red week can shave a BUY to HOLD, never quality to SELL alone.
+        blended = (momentum_7d + momentum_30d) / 2
+        if blended > 8:
             score += 3
-        elif momentum_30d > 5:
+        elif blended > 4:
             score += 2
-        elif momentum_30d > 0:
+        elif blended > 1:
             score += 1
-        elif momentum_30d > -5:
+        elif blended > -3:
+            score += 0
+        elif blended > -7:
             score -= 1
-        elif momentum_30d > -10:
-            score -= 2
         else:
-            score -= 3
+            score -= 2
 
         # Map score to rating
         if score >= 6:

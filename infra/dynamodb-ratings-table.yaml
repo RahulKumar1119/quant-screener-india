@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Quant Screener India - nightly STRONG BUY ratings table
+
+# Created out-of-band via AWS CLI (no SAM stack in this account):
+#   aws dynamodb create-table --cli-input-json file://dynamodb-ratings-table.json
+#   --region ap-south-1
+# Served by GET /api/ratings/strong-buys, written by the
+# quant-screener-ratings-batch Lambda at 6pm IST (cron 30 12 * * ? * UTC).
+
+Resources:
+  RatingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: quant-screener-ratings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ticker
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ticker
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true

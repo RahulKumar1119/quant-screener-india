@@ -22,12 +22,15 @@ from cache import CacheManager
 from ml_models import GemmaModel, TFTModel, XGBoostModel
 from nse_client import NSEClient
 from rate_limiter import RateLimiter
+from ratings_store import RatingStore
 from schemas import (
     AllTickersResponse,
     HistoricalData,
     MarketIndicesResponse,
     MarketIndex,
     QuarterlyFinancial,
+    StrongBuyItem,
+    StrongBuysResponse,
     TFTOutput,
     TickerProfile,
     TickerResponse,
@@ -55,6 +58,7 @@ async def lifespan(app: FastAPI):
     app.state.nse_client = NSEClient()
     app.state.cache = CacheManager()
     app.state.rate_limiter = RateLimiter(max_requests=5, window_seconds=1.0)
+    app.state.ratings = RatingStore()
 
     logger.info("Application startup complete. All models and services initialized.")
     yield
@@ -253,6 +257,38 @@ async def get_market_indices(request: Request):
     return MarketIndicesResponse(
         indices=[MarketIndex(**item) for item in indices],
         as_of=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+    )
+
+
+@app.get("/api/ratings/strong-buys", response_model=StrongBuysResponse)
+async def get_strong_buys(request: Request):
+    """Return the stored STRONG BUY list from the latest nightly run.
+
+    Scored daily at 6pm IST across the top-50 NSE listings by market cap.
+    Returns an empty list (never an error) when no run has populated
+    the table yet.
+    """
+    import asyncio
+
+    ratings: RatingStore = request.app.state.ratings
+    items = await asyncio.to_thread(ratings.get_strong_buys)
+
+    as_of = items[0].get("as_of") if items else None
+    return StrongBuysResponse(
+        as_of=as_of,
+        count=len(items),
+        items=[
+            StrongBuyItem(
+                ticker=i.get("ticker", ""),
+                company_name=i.get("company_name", i.get("ticker", "")),
+                rating=i.get("rating", "STRONG BUY"),
+                confidence=float(i.get("confidence", 0)),
+                tft_score=int(i.get("tft_score", 0)),
+                tft_trend=i.get("tft_trend", "Neutral"),
+                as_of=i.get("as_of", as_of or ""),
+            )
+            for i in items
+        ],
     )
 
 

@@ -50,6 +50,8 @@ pip install \
 echo "[3/5] Copying application source..."
 cp "${SCRIPT_DIR}/app.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/auth.py" "${PACKAGE_DIR}/"
+cp "${SCRIPT_DIR}/batch_score.py" "${PACKAGE_DIR}/"
+cp "${SCRIPT_DIR}/ratings_store.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/nse_client.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/cache.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/rate_limiter.py" "${PACKAGE_DIR}/"
