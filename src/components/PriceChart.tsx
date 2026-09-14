@@ -25,21 +25,26 @@ export function PriceChart({ historical }: PriceChartProps) {
           ? "down"
           : "flat"
       : "flat";
+  const isDark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
   const lineColor =
-    direction === "up" ? "#2FA36B" : direction === "down" ? "#C2503A" : "#9AA4B2";
+    direction === "up"
+      ? isDark ? "#3FB97E" : "#1B6B44"
+      : direction === "down"
+        ? isDark ? "#D66A52" : "#AA4130"
+        : isDark ? "#9AA4B2" : "#5A6674";
 
   useEffect(() => {
     if (!containerRef.current || points.length === 0) return;
 
-    const isDark = document.documentElement.classList.contains("dark");
-    const gridColor = isDark ? "rgba(154, 164, 178, 0.14)" : "rgba(91, 100, 114, 0.18)";
+    const dark = document.documentElement.classList.contains("dark");
+    const gridColor = dark ? "rgba(154, 164, 178, 0.14)" : "rgba(90, 102, 116, 0.18)";
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 260,
       layout: {
         background: { color: "transparent" },
-        textColor: isDark ? "#9AA4B2" : "#5b6472",
+        textColor: dark ? "#9AA4B2" : "#5A6674",
       },
       grid: {
         vertLines: { visible: false },
@@ -47,7 +52,7 @@ export function PriceChart({ historical }: PriceChartProps) {
       },
       timeScale: {
         timeVisible: false,
-        borderColor: isDark ? "#4b5563" : "#d1d5db",
+        borderColor: dark ? "#4b5563" : "#d1d5db",
       },
     });
 
@@ -82,7 +87,7 @@ export function PriceChart({ historical }: PriceChartProps) {
 
   if (points.length === 0) {
     return (
-      <p className="text-sm text-[#9AA4B2]">
+      <p className="text-sm text-fog">
         No price history for this period.
       </p>
     );

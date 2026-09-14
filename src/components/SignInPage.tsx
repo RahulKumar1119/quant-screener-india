@@ -7,7 +7,6 @@ import { useAuth } from "../hooks/useAuth";
 /**
  * Sign-in page with email/password form.
  * Calls /api/auth/signin, stores token, navigates to /.
- * Premium dark design: black bg, glass card, gradient button.
  */
 export function SignInPage() {
   const [email, setEmail] = useState("");
@@ -50,10 +49,10 @@ export function SignInPage() {
         <div className="glass rounded-2xl p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              Welcome Back
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Welcome back
             </h1>
-            <p className="text-gray-400 mt-2 text-sm">
+            <p className="text-fog mt-2 text-sm">
               Sign in to access your portfolio analytics
             </p>
           </div>
@@ -68,7 +67,7 @@ export function SignInPage() {
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email field */}
             <div>
-              <label htmlFor="signin-email" className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="signin-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Email
               </label>
               <input
@@ -77,14 +76,14 @@ export function SignInPage() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors"
+                className="w-full px-4 py-2.5 rounded-lg bg-surface border border-custom text-gray-900 dark:text-gray-100 placeholder:text-fog/70 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
                 placeholder="you@example.com"
               />
             </div>
 
             {/* Password field */}
             <div>
-              <label htmlFor="signin-password" className="block text-sm font-medium text-gray-300 mb-1.5">
+              <label htmlFor="signin-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -94,13 +93,13 @@ export function SignInPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 pr-10 rounded-lg bg-white/5 border border-white/10 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 pr-10 rounded-lg bg-surface border border-custom text-gray-900 dark:text-gray-100 placeholder:text-fog/70 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-colors"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fog hover:text-primary transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
@@ -116,16 +115,16 @@ export function SignInPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 rounded-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-lg font-medium border border-primary/50 text-primary hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           {/* Footer link */}
-          <p className="mt-6 text-center text-sm text-gray-400">
+          <p className="mt-6 text-center text-sm text-fog">
             Don&apos;t have an account?{" "}
-            <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+            <Link to="/signup" className="text-primary hover:underline transition-colors">
               Sign Up
             </Link>
           </p>

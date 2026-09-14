@@ -14,7 +14,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <div className="min-h-screen bg-surface text-gray-100">
+          <div className="min-h-screen bg-surface text-gray-900 dark:text-gray-100">
             <NavigationHeader />
             <Routes>
               <Route path="/" element={<HomePage />} />

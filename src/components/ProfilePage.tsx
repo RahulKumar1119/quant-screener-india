@@ -20,14 +20,14 @@ export function ProfilePage() {
         <div className="glass rounded-2xl p-8 shadow-2xl">
           {/* Avatar */}
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-3xl font-bold text-white">
+            <div className="w-20 h-20 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center text-3xl font-bold text-primary">
               {user.email.charAt(0).toUpperCase()}
             </div>
           </div>
 
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
               {user.username || user.email.split("@")[0]}
             </h1>
             <p className="text-sm text-gray-500">{user.email}</p>
@@ -35,17 +35,17 @@ export function ProfilePage() {
 
           {/* Profile info */}
           <div className="space-y-4 mb-8">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-              <span className="text-sm text-gray-400">Email</span>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-surface border border-custom">
+              <span className="text-sm text-fog">Email</span>
               <span className="text-sm font-medium text-gray-100">{user.email}</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-              <span className="text-sm text-gray-400">User ID</span>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-surface border border-custom">
+              <span className="text-sm text-fog">User ID</span>
               <span className="text-xs font-mono text-gray-300 truncate max-w-[180px]">{user.user_id}</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-              <span className="text-sm text-gray-400">Plan</span>
-              <span className="text-sm font-medium text-emerald-400">Free</span>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-surface border border-custom">
+              <span className="text-sm text-fog">Plan</span>
+              <span className="text-sm font-medium text-leaf">Free</span>
             </div>
           </div>
 
@@ -53,7 +53,7 @@ export function ProfilePage() {
           <div className="space-y-3">
             <button
               onClick={() => navigate("/")}
-              className="w-full py-2.5 rounded-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all"
+              className="w-full py-2.5 rounded-lg font-medium text-white border border-primary/50 text-primary hover:bg-primary/10 transition-all"
             >
               Go to Dashboard
             </button>

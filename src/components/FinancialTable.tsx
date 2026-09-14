@@ -62,7 +62,7 @@ export function FinancialTable({ financials }: FinancialTableProps) {
   return (
     <div className="overflow-x-auto glass rounded-lg min-w-0">
       <table className="w-full min-w-[600px] text-sm">
-        <thead className="bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
+        <thead className="border-b border-custom">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
@@ -70,7 +70,7 @@ export function FinancialTable({ financials }: FinancialTableProps) {
                 return (
                   <th
                     key={header.id}
-                    className={`px-4 py-3 font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none ${
+                    className={`px-4 py-3 font-medium text-fog cursor-pointer select-none ${
                       isNumeric ? "text-right" : "text-left"
                     }`}
                     onClick={header.column.getToggleSortingHandler()}
@@ -85,10 +85,10 @@ export function FinancialTable({ financials }: FinancialTableProps) {
                         header.getContext()
                       )}
                       {header.column.getIsSorted() === "asc" && (
-                        <span className="transition-transform duration-200" aria-label="sorted ascending">▲</span>
+                        <span aria-label="sorted ascending">▲</span>
                       )}
                       {header.column.getIsSorted() === "desc" && (
-                        <span className="transition-transform duration-200" aria-label="sorted descending">▼</span>
+                        <span aria-label="sorted descending">▼</span>
                       )}
                     </div>
                   </th>
@@ -98,18 +98,17 @@ export function FinancialTable({ financials }: FinancialTableProps) {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row, index) => (
+          {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className="border-t border-gray-200 dark:border-gray-700 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 transition-colors duration-150 animate-fade-in"
-              style={{ animationDelay: `${index * 40}ms` }}
+              className="border-t border-custom hover:bg-primary/5 transition-colors duration-150"
             >
               {row.getVisibleCells().map((cell) => {
                 const isNumeric = cell.column.id !== "quarter";
                 return (
                   <td
                     key={cell.id}
-                    className={`px-4 py-3 text-gray-900 dark:text-gray-100 ${
+                    className={`px-4 py-3 text-gray-900 dark:text-gray-100 tabular-nums ${
                       isNumeric ? "text-right" : "text-left"
                     }`}
                   >

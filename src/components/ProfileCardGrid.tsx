@@ -14,15 +14,15 @@ interface MetricCard {
 }
 
 const badgeClasses: Record<"green" | "red" | "neutral", string> = {
-  green: "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 dark:from-green-900 dark:to-emerald-900 dark:text-green-200 shadow-sm shadow-green-500/20",
-  red: "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 dark:from-red-900 dark:to-rose-900 dark:text-red-200 shadow-sm shadow-red-500/20",
-  neutral: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200",
+  green: "bg-leaf/10 text-leaf",
+  red: "bg-clay/10 text-clay",
+  neutral: "bg-gray-500/10 text-fog",
 };
 
 const topBorderColors: Record<"green" | "red" | "neutral", string> = {
-  green: "border-t-green-500",
-  red: "border-t-red-500",
-  neutral: "border-t-slate-300 dark:border-t-slate-600",
+  green: "border-t-leaf",
+  red: "border-t-clay",
+  neutral: "border-t-custom",
 };
 
 export function ProfileCardGrid({ profile }: ProfileCardGridProps) {
@@ -61,18 +61,17 @@ export function ProfileCardGrid({ profile }: ProfileCardGridProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-      {metrics.map((metric, index) => {
+      {metrics.map((metric) => {
         const color = getBadgeColor(metric.field, metric.rawValue);
         return (
           <div
             key={metric.field}
-            className={`glass rounded-lg border-t-2 ${topBorderColors[color]} p-4 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 animate-fade-in`}
-            style={{ animationDelay: `${index * 60}ms` }}
+            className={`glass rounded-lg border-t-2 ${topBorderColors[color]} p-4`}
           >
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+            <p className="text-sm text-fog mb-1">
               {metric.label}
             </p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <p className="text-lg font-semibold tabular-nums text-gray-900 dark:text-gray-100 mb-2">
               {metric.value}
             </p>
             <span

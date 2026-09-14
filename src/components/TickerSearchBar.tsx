@@ -102,8 +102,8 @@ export function TickerSearchBar({ size = "default" }: { size?: "default" | "hero
       ref={containerRef}
       className={
         isHero
-          ? "relative w-full max-w-xl focus-within:ring-2 focus-within:ring-[#C8A96A]/40 rounded-[10px]"
-          : "relative w-full max-w-md focus-within:max-w-lg transition-all duration-200 ease-out focus-within:ring-2 focus-within:ring-indigo-500/50 rounded-lg"
+          ? "relative w-full max-w-xl focus-within:ring-2 focus-within:ring-primary/40 rounded-[10px]"
+          : "relative w-full max-w-md focus-within:max-w-lg transition-all duration-200 ease-out focus-within:ring-2 focus-within:ring-primary/50 rounded-lg"
       }
     >
       <input
@@ -127,8 +127,8 @@ export function TickerSearchBar({ size = "default" }: { size?: "default" | "hero
         spellCheck={false}
         className={
           isHero
-            ? "w-full min-h-[48px] rounded-[10px] border border-white/15 bg-white/[0.04] px-4 text-[15px] text-gray-100 placeholder:text-[#9AA4B2]/70 focus:border-[#C8A96A]/60 focus:outline-none transition-colors"
-            : "w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none transition-colors"
+            ? "w-full min-h-[48px] rounded-[10px] border border-custom bg-surface-elevated px-4 text-[15px] text-gray-900 dark:text-gray-100 placeholder:text-fog/70 focus:border-primary/60 focus:outline-none transition-colors"
+            : "w-full px-4 py-2 rounded-lg border border-custom bg-surface-elevated text-gray-900 dark:text-gray-100 placeholder:text-fog/70 focus:outline-none transition-colors"
         }
       />
 
@@ -147,12 +147,12 @@ export function TickerSearchBar({ size = "default" }: { size?: "default" | "hero
               onMouseEnter={() => setHighlightedIndex(index)}
               className={`px-4 py-2 cursor-pointer text-sm transition-colors duration-100 ${
                 index === highlightedIndex
-                  ? "border-l-2 border-indigo-500 bg-gradient-to-r from-indigo-500/10 to-transparent text-gray-900 dark:text-gray-100"
-                  : "border-l-2 border-transparent text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  ? "border-l-2 border-primary bg-primary/10 text-gray-900 dark:text-gray-100"
+                  : "border-l-2 border-transparent text-gray-900 dark:text-gray-100 hover:bg-primary/5"
               }`}
             >
               <span className="font-medium">{item.ticker}</span>
-              <span className="ml-2 text-gray-500 dark:text-gray-400">
+              <span className="ml-2 text-fog">
                 {item.company_name}
               </span>
             </li>

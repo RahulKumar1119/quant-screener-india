@@ -14,6 +14,9 @@ const config: Config = {
         success: "rgb(var(--color-success) / <alpha-value>)",
         warning: "rgb(var(--color-warning) / <alpha-value>)",
         danger: "rgb(var(--color-danger) / <alpha-value>)",
+        leaf: "rgb(var(--color-leaf) / <alpha-value>)",
+        clay: "rgb(var(--color-clay) / <alpha-value>)",
+        fog: "rgb(var(--color-fog) / <alpha-value>)",
       },
       animation: {
         shimmer: "shimmer 1.5s linear infinite",

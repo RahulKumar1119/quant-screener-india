@@ -106,13 +106,13 @@ export function HomePage() {
 
   return (
     <div ref={container} className="min-h-screen overflow-hidden">
-      {/* ════════ HERO: opening-bell verdict ════════ */}
-      <section className="border-b border-white/[0.08] bg-[#0B0D10]">
+      {/* ════════ HERO ════════ */}
+      <section className="border-b border-custom bg-surface">
         <div className="mx-auto max-w-7xl px-4 py-14 md:py-20">
-          <p className="text-sm text-[#9AA4B2]">
+          <p className="text-sm text-fog">
             Live NSE data with XGBoost ratings and TFT resilience
           </p>
-          <h1 className="mt-3 max-w-2xl text-4xl font-bold leading-tight text-gray-100 md:text-5xl">
+          <h1 className="mt-3 max-w-2xl text-4xl font-bold leading-tight text-gray-900 dark:text-gray-100 md:text-5xl">
             See any NSE stock the way an analyst sees it at the opening bell.
           </h1>
 
@@ -120,13 +120,13 @@ export function HomePage() {
             <TickerSearchBar size="hero" />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-[#9AA4B2]">Try</span>
+            <span className="text-fog">Try</span>
             {["RELIANCE", "HDFCBANK", "JNKINDIA"].map((symbol) => (
               <button
                 key={symbol}
                 type="button"
                 onClick={() => navigate(`/${symbol}`)}
-                className="rounded-md px-2 py-1 font-mono text-[13px] text-gray-300 underline decoration-white/20 underline-offset-4 hover:decoration-[#C8A96A]/70 hover:text-white"
+                className="rounded-md px-2 py-1 font-mono text-[13px] text-gray-600 dark:text-gray-300 underline decoration-gray-300 dark:decoration-white/20 underline-offset-4 hover:decoration-primary/70 hover:text-primary"
               >
                 {symbol}
               </button>
@@ -136,14 +136,14 @@ export function HomePage() {
       </section>
 
       {/* ════════ MARKET TAPE (live, refreshed daily) ════════ */}
-      <section aria-label="Market snapshot" className="border-b border-white/5 bg-black/60 py-4">
+      <section aria-label="Market snapshot" className="border-b border-custom bg-surface-elevated py-4">
         <div className="mx-auto max-w-7xl px-4">
           <div className="mb-3 flex items-baseline gap-3">
-            <p className="text-xs text-[#9AA4B2]">
+            <p className="text-xs text-fog">
               {marketAsOf ? `As of ${marketAsOf}` : "Latest available levels"}
             </p>
             <p
-              className={`text-xs font-medium ${marketLive ? "text-[#2FA36B]" : "text-[#C8A96A]"}`}
+              className={`text-xs font-medium ${marketLive ? "text-leaf" : "text-primary"}`}
               role="status"
             >
               {marketLive ? "Live" : "Showing last available data"}
@@ -152,15 +152,15 @@ export function HomePage() {
           <div className="flex flex-wrap gap-x-10 gap-y-3">
             {marketIndices.map((idx) => (
               <div key={idx.name} className="flex items-baseline gap-3">
-                <span className="text-xs font-medium text-[#9AA4B2]">{idx.name}</span>
-                <span className="text-sm font-semibold tabular-nums text-gray-100">
+                <span className="text-xs font-medium text-fog">{idx.name}</span>
+                <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">
                   {idx.value.toLocaleString("en-IN", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                 </span>
                 <span
-                  className={`text-xs font-semibold tabular-nums ${idx.change_pct >= 0 ? "text-[#2FA36B]" : "text-[#C2503A]"}`}
+                  className={`text-xs font-semibold tabular-nums ${idx.change_pct >= 0 ? "text-leaf" : "text-clay"}`}
                 >
                   {idx.change_pct >= 0 ? "+" : ""}
                   {idx.change_pct.toFixed(2)}%
@@ -171,16 +171,16 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ════════ STATS COUNTERS ════════ */}
+      {/* ════════ STATS ════════ */}
       <section className="max-w-7xl mx-auto px-4 py-16">
         <div className="stats-grid grid grid-cols-2 md:grid-cols-4 gap-6">
           {STATS.map((stat) => (
-            <div key={stat.label} className="stat-card glass rounded-2xl p-6 text-center" style={{ transformStyle: "preserve-3d" }}>
-              <div className="text-4xl md:text-5xl font-black bg-gradient-to-br from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
+            <div key={stat.label} className="stat-card glass rounded-2xl p-6 text-left">
+              <div className="text-4xl md:text-5xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
                 <span className="counter-value" data-target={stat.end}>0</span>
                 <span>{stat.suffix}</span>
               </div>
-              <div className="text-sm text-gray-400 mt-2 font-semibold uppercase tracking-wider">
+              <div className="text-sm text-fog mt-2">
                 {stat.label}
               </div>
             </div>
@@ -189,42 +189,42 @@ export function HomePage() {
       </section>
 
       {/* ════════ MODELS: how a ticker becomes a verdict ════════ */}
-      <section className="border-t border-white/5 bg-[#0B0D10]">
+      <section className="border-t border-custom bg-surface-elevated">
         <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
-          <h2 className="max-w-xl text-3xl font-bold leading-tight text-gray-100 md:text-4xl">
+          <h2 className="max-w-xl text-3xl font-bold leading-tight text-gray-900 dark:text-gray-100 md:text-4xl">
             How a ticker becomes a verdict.
           </h2>
-          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#9AA4B2]">
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-fog">
             Everything starts from one live record per ticker: the latest quote,
             30 days of closes and quarterly financials. Four stages read that
             record in order, each answering one question. Figures use Indian
             numbering throughout, with trading-day axes that skip weekends.
           </p>
-          <ol className="mt-10 border-t border-white/10">
+          <ol className="mt-10 border-t border-custom">
             {MODELS.map((m) => (
               <li
                 key={m.n}
-                className="model-row grid gap-2 border-b border-white/10 py-6 md:grid-cols-[56px_240px_1fr] md:gap-6"
+                className="model-row grid gap-2 border-b border-custom py-6 md:grid-cols-[56px_240px_1fr] md:gap-6"
               >
-                <span className="text-sm tabular-nums text-[#C8A96A]">{m.n}</span>
+                <span className="text-sm tabular-nums text-primary">{m.n}</span>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-100">{m.name}</h3>
-                  <p className="mt-1 text-sm text-[#9AA4B2]">{m.question}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{m.name}</h3>
+                  <p className="mt-1 text-sm text-fog">{m.question}</p>
                 </div>
                 <div className="space-y-2 text-sm leading-relaxed">
-                  <p className="text-gray-300">
-                    <span className="text-[#9AA4B2]">Reads </span>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <span className="text-fog">Reads </span>
                     {m.reads}.
                   </p>
-                  <p className="text-gray-300">
-                    <span className="text-[#9AA4B2]">Writes </span>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    <span className="text-fog">Writes </span>
                     {m.writes}.
                   </p>
                 </div>
               </li>
             ))}
           </ol>
-          <p className="mt-6 text-xs leading-relaxed text-[#9AA4B2]">
+          <p className="mt-6 text-xs leading-relaxed text-fog">
             When a model is unreachable, the page shows the remaining data and
             says so instead of failing. Ratings carry confidence scores so a
             verdict can always be weighed, never just taken.
@@ -234,37 +234,29 @@ export function HomePage() {
 
       {/* ════════ CTA ════════ */}
       <section className="cta-section max-w-7xl mx-auto px-4 py-20">
-        <div className="cta-box relative glass rounded-[2rem] p-12 md:p-20 text-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-violet-500/5 to-purple-500/5" />
-          <div className="particle absolute -top-10 left-1/3 w-60 h-60 bg-indigo-500/10 rounded-full blur-[80px]" />
-          <div className="particle absolute -bottom-10 right-1/3 w-60 h-60 bg-violet-500/10 rounded-full blur-[80px]" />
+        <div className="cta-box glass rounded-[2rem] p-12 md:p-20 text-center overflow-hidden">
           <div className="relative">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-100 mb-5">
-              Start Analyzing
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-5">
+              Start analyzing
             </h2>
-            <p className="text-xl text-gray-400 mb-10 max-w-lg mx-auto">
+            <p className="text-xl text-fog mb-10 max-w-lg mx-auto">
               Search any NSE ticker for AI-powered insights
             </p>
             <button
               onClick={() => navigate("/HDFCBANK")}
-              className="group px-12 py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-lg rounded-2xl transition-all duration-300 hover:scale-105"
+              className="px-12 py-4 border border-primary/50 text-primary font-semibold text-lg rounded-2xl transition-colors hover:bg-primary/10"
             >
-              <span className="flex items-center justify-center gap-3">
-                Try HDFC Bank
-                <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
+              Try HDFC Bank
             </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12">
+      <footer className="border-t border-custom py-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-gray-400 font-medium">
-            <span className="font-bold bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">Quant Screener India</span>
+          <p className="text-fog font-medium">
+            <span className="font-bold text-primary">Quant Screener India</span>
             {" "}— AI-powered NSE stock analytics
           </p>
         </div>

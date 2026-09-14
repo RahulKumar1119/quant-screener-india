@@ -32,18 +32,18 @@ export function IntelEngineDashboard({
   return (
     <section
       aria-label="Price history with model assessment"
-      className="animate-fade-in overflow-hidden rounded-[14px] border border-white/10 bg-[#0B0D10]"
+      className="animate-fade-in overflow-hidden rounded-[14px] border border-custom bg-surface-elevated"
     >
       <div className="grid gap-6 p-5 pb-4 md:grid-cols-[1fr_auto] md:items-start">
         <TFTScoreGauge tftScore={tftScore} />
         <XGBoostRatingBadge xgboost={xgboost} />
       </div>
 
-      <div className="border-t border-white/[0.08] px-3 pt-3">
+      <div className="border-t border-custom px-3 pt-3">
         <PriceChart historical={historical} />
       </div>
 
-      <p className="border-t border-white/[0.08] px-5 py-3 text-xs tabular-nums text-[#9AA4B2]">
+      <p className="border-t border-custom px-5 py-3 text-xs tabular-nums text-fog">
         {changeLabel}
       </p>
     </section>

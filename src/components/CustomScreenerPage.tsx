@@ -34,10 +34,10 @@ export function CustomScreenerPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold border-l-4 border-indigo-500 pl-3 bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-          Custom Screener
+        <h1 className="text-2xl font-bold border-l-4 border-primary pl-3 text-gray-900 dark:text-gray-100">
+          Custom screener
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 pl-3">
+        <p className="text-sm text-fog mt-1 pl-3">
           Build queries to filter NSE tickers by financial metrics and AI scores.
         </p>
       </div>
@@ -54,7 +54,7 @@ export function CustomScreenerPage() {
             </div>
 
             {/* Helper panel — 30% on desktop */}
-            <div className="md:w-[30%] glass rounded-lg p-4 bg-indigo-500/5 dark:bg-indigo-400/5">
+            <div className="md:w-[30%] glass rounded-lg p-4 bg-primary/5">
               <HelperPanel />
             </div>
           </div>

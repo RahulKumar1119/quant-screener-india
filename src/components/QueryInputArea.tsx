@@ -35,7 +35,7 @@ export function QueryInputArea({ onSubmit, error }: QueryInputAreaProps) {
         onChange={(e) => setQueryText(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder='e.g. Market Cap > 10000 AND PE < 30 AND ROE > 15'
-        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm font-mono placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+        className="w-full rounded-lg border border-custom bg-surface text-gray-900 dark:text-gray-100 px-4 py-3 text-sm font-mono placeholder:text-fog/70 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent resize-y"
       />
 
       {error && (
@@ -56,7 +56,7 @@ export function QueryInputArea({ onSubmit, error }: QueryInputAreaProps) {
 
       <button
         onClick={handleSubmit}
-        className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        className="px-5 py-2 rounded-lg border border-primary/50 text-primary text-sm font-medium transition-colors hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/50"
       >
         Run Query
       </button>

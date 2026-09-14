@@ -6,9 +6,9 @@ interface TFTScoreGaugeProps {
 }
 
 const trendColors: Record<TrendOutlook, string> = {
-  Bullish: "text-[#2FA36B]",
-  Bearish: "text-[#C2503A]",
-  Neutral: "text-[#C8A96A]",
+  Bullish: "text-leaf",
+  Bearish: "text-clay",
+  Neutral: "text-primary",
 };
 
 function prefersReducedMotion(): boolean {
@@ -54,8 +54,8 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
   if (!tftScore) {
     return (
       <div className="py-1">
-        <p className="text-sm font-medium text-gray-300">Macro resilience</p>
-        <p className="mt-1 text-sm text-[#9AA4B2]">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Macro resilience</p>
+        <p className="mt-1 text-sm text-fog">
           Model output unavailable, showing price history.
         </p>
       </div>
@@ -67,13 +67,13 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
   return (
     <div className="py-1">
       <div className="flex items-baseline justify-between gap-4">
-        <p className="text-sm font-medium text-gray-300">Macro resilience</p>
-        <p className="text-xs tabular-nums text-[#9AA4B2]">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Macro resilience</p>
+        <p className="text-xs tabular-nums text-fog">
           Scale 0 to 100
         </p>
       </div>
       <div className="mt-2 flex items-baseline gap-3">
-        <span className="text-4xl font-bold tabular-nums text-gray-100">
+        <span className="text-4xl font-bold tabular-nums text-gray-900 dark:text-gray-100">
           {animatedScore}
         </span>
         <span className={`text-sm font-semibold ${trendColors[trend_outlook]}`}>
@@ -81,7 +81,7 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
         </span>
       </div>
       <div
-        className="relative mt-3 h-[3px] rounded-full bg-white/10"
+        className="relative mt-3 h-[3px] rounded-full bg-gray-300 dark:bg-white/10"
         role="meter"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -89,14 +89,14 @@ export function TFTScoreGauge({ tftScore }: TFTScoreGaugeProps) {
         aria-label={`Macro resilience ${score} of 100, ${trend_outlook}`}
       >
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-[#C8A96A]"
+          className="absolute inset-y-0 left-0 rounded-full bg-primary"
           style={{ width: `${Math.max(0, Math.min(100, animatedScore))}%` }}
         />
         {[35, 65].map((tick) => (
           <span
             key={tick}
             aria-hidden="true"
-            className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-white/25"
+            className="absolute top-1/2 h-2 w-px -translate-y-1/2 bg-gray-400 dark:bg-white/25"
             style={{ left: `${tick}%` }}
           />
         ))}

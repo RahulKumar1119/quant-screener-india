@@ -73,9 +73,9 @@ export function ScreenerResultsGrid({
   });
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <span className="text-gray-400 ml-1">↕</span>;
+    if (sortField !== field) return <span className="text-fog ml-1">↕</span>;
     return (
-      <span className="text-blue-500 ml-1">
+      <span className="text-primary ml-1">
         {sortDirection === "asc" ? "↑" : "↓"}
       </span>
     );
@@ -84,7 +84,7 @@ export function ScreenerResultsGrid({
   if (results.length === 0) {
     return (
       <div className="glass rounded-lg p-8 text-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-fog">
           No results. Run a query to see matching tickers.
         </p>
       </div>
@@ -95,60 +95,59 @@ export function ScreenerResultsGrid({
     <div className="space-y-3">
       <div className="overflow-x-auto glass rounded-lg min-w-0">
         <table className="w-full min-w-[700px] text-sm">
-          <thead className="bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b border-gray-200 dark:border-gray-700">
+          <thead className="border-b border-custom">
             <tr>
               <th
                 onClick={() => handleSort("ticker")}
-                className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-left font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 Ticker <SortIcon field="ticker" />
               </th>
               <th
                 onClick={() => handleSort("company_name")}
-                className="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-left font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 Company <SortIcon field="company_name" />
               </th>
               <th
                 onClick={() => handleSort("market_cap")}
-                className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-right font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 Market Cap <SortIcon field="market_cap" />
               </th>
               <th
                 onClick={() => handleSort("pe_ratio")}
-                className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-right font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 PE <SortIcon field="pe_ratio" />
               </th>
               <th
                 onClick={() => handleSort("roe")}
-                className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-right font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 ROE <SortIcon field="roe" />
               </th>
               <th
                 onClick={() => handleSort("ai_rating")}
-                className="px-4 py-3 text-center font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-center font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 AI Rating <SortIcon field="ai_rating" />
               </th>
               <th
                 onClick={() => handleSort("tft_score")}
-                className="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none"
+                className="px-4 py-3 text-right font-medium text-fog cursor-pointer hover:text-primary select-none"
               >
                 TFT Score <SortIcon field="tft_score" />
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedResults.map((ticker, index) => (
+          <tbody className="divide-y divide-custom">
+            {sortedResults.map((ticker) => (
               <tr
                 key={ticker.ticker}
-                className="hover:bg-gradient-to-r hover:from-indigo-500/5 hover:to-transparent transition-all duration-200 animate-fade-in"
-                style={{ animationDelay: `${index * 30}ms` }}
+                className="hover:bg-primary/5 transition-colors duration-150"
               >
-                <td className="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">
+                <td className="px-4 py-3 font-medium text-primary">
                   {ticker.ticker}
                 </td>
                 <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
@@ -157,16 +156,16 @@ export function ScreenerResultsGrid({
                 <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 font-mono text-xs">
                   {formatIndianCurrency(ticker.market_cap)}
                 </td>
-                <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
                   {ticker.pe_ratio.toFixed(1)}
                 </td>
-                <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 tabular-nums">
                   {ticker.roe.toFixed(1)}%
                 </td>
                 <td className="px-4 py-3 text-center">
                   <RatingBadge rating={ticker.ai_rating} />
                 </td>
-                <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 font-medium">
+                <td className="px-4 py-3 text-right text-gray-700 dark:text-gray-300 font-medium tabular-nums">
                   {ticker.tft_score.toFixed(0)}
                 </td>
               </tr>
@@ -177,21 +176,21 @@ export function ScreenerResultsGrid({
 
       {/* Pagination controls */}
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-fog tabular-nums">
           Page {page} of {totalPages}
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+            className="px-3 py-1.5 text-sm rounded-md border border-custom text-gray-700 dark:text-gray-300 hover:border-primary/50 hover:text-primary focus:ring-2 focus:ring-primary/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
           >
             Prev
           </button>
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:scale-105 focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+            className="px-3 py-1.5 text-sm rounded-md border border-custom text-gray-700 dark:text-gray-300 hover:border-primary/50 hover:text-primary focus:ring-2 focus:ring-primary/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-150"
           >
             Next
           </button>
@@ -203,16 +202,15 @@ export function ScreenerResultsGrid({
 
 function RatingBadge({ rating }: { rating: string }) {
   const colorMap: Record<string, string> = {
-    "STRONG BUY":
-      "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 shadow-sm shadow-green-500/20",
-    BUY: "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 shadow-sm shadow-emerald-500/20",
-    HOLD: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 shadow-sm shadow-yellow-500/20",
-    SELL: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 shadow-sm shadow-red-500/20",
+    "STRONG BUY": "bg-leaf/10 text-leaf",
+    BUY: "bg-accent/10 text-accent",
+    HOLD: "bg-primary/10 text-primary",
+    SELL: "bg-clay/10 text-clay",
   };
 
   const colors =
     colorMap[rating] ??
-    "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300";
+    "bg-gray-500/10 text-fog";
 
   return (
     <span

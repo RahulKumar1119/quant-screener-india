@@ -137,7 +137,7 @@ export function AnalyticsPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {data.company_name}
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm tabular-nums text-fog">
           {data.ticker}
         </p>
       </div>
@@ -155,7 +155,7 @@ export function AnalyticsPage() {
       {/* Financial Table */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          Quarterly Financials
+          Quarterly financials
         </h2>
         <FinancialTable financials={data.quarterly_financials} />
       </div>
