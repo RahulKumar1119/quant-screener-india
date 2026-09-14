@@ -40,7 +40,7 @@ pip install \
     --target "${PACKAGE_DIR}" \
     --platform manylinux2014_x86_64 \
     --implementation cp \
-    --python-version 3.11 \
+    --python-version 3.10 \
     --only-binary=:all: \
     --upgrade \
     -r "${SCRIPT_DIR}/requirements.txt" \
@@ -49,6 +49,7 @@ pip install \
 # Copy application source files
 echo "[3/5] Copying application source..."
 cp "${SCRIPT_DIR}/app.py" "${PACKAGE_DIR}/"
+cp "${SCRIPT_DIR}/auth.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/nse_client.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/cache.py" "${PACKAGE_DIR}/"
 cp "${SCRIPT_DIR}/rate_limiter.py" "${PACKAGE_DIR}/"
@@ -58,8 +59,9 @@ cp -r "${SCRIPT_DIR}/data" "${PACKAGE_DIR}/data"
 
 # Remove unnecessary files to minimize package size
 echo "[4/5] Optimizing package size..."
+# NOTE: keep *.dist-info — pydantic/email-validator read package metadata
+# at runtime via importlib.metadata; deleting them breaks Lambda imports.
 find "${PACKAGE_DIR}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-find "${PACKAGE_DIR}" -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
 find "${PACKAGE_DIR}" -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
 find "${PACKAGE_DIR}" -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
 find "${PACKAGE_DIR}" -name "*.pyc" -delete 2>/dev/null || true

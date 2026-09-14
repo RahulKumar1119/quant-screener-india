@@ -12,3 +12,6 @@ __pycache__/
 # Data files
 nse_stocks_1000cr_plus.csv
 !backend/data/nse_equity_master.csv
+
+# Lambda packaging output
+.build/
