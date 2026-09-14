@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { TextPlugin } from "gsap/TextPlugin";
-import { SAMPLE_ALL_TICKERS, SAMPLE_TICKER } from "../mocks/sampleData";
+import { TickerSearchBar } from "./TickerSearchBar";
 import { useMarketIndices } from "../hooks/useMarketIndices";
 
 gsap.registerPlugin(ScrollTrigger, TextPlugin, useGSAP);
@@ -25,53 +25,11 @@ const STATS = [
   { end: 100, suffix: "", label: "TFT Score Range" },
 ];
 
-function Sparkline({ values }: { values: number[] }) {
-  if (values.length < 2) return null;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const w = 120;
-  const h = 36;
-  const step = w / (values.length - 1);
-  const points = values
-    .map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / span) * (h - 4) - 2).toFixed(1)}`)
-    .join(" ");
-  const up = values[values.length - 1] >= values[0];
-  return (
-    <svg
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      fill="none"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <polyline
-        points={points}
-        stroke={up ? "#2FA36B" : "#C2503A"}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export function HomePage() {
   const navigate = useNavigate();
   const container = useRef<HTMLDivElement>(null);
-  const trendingStocks = SAMPLE_ALL_TICKERS.tickers.slice(0, 8);
-  const [heroQuery, setHeroQuery] = useState("");
   const { indices: marketIndices, asOf: marketAsOf, live: marketLive } =
     useMarketIndices();
-  const verdict = SAMPLE_TICKER;
-  const verdictChange =
-    verdict.historical.close_prices.length >= 2
-      ? ((verdict.historical.close_prices[verdict.historical.close_prices.length - 1] -
-          verdict.historical.close_prices[0]) /
-          Math.abs(verdict.historical.close_prices[0])) *
-        100
-      : null;
 
   useGSAP(
     () => {
@@ -100,46 +58,6 @@ export function HomePage() {
         ease: "power3.out",
         scrollTrigger: { trigger: ".stats-grid", start: "top 80%" },
       });
-
-      // ═══════════════════════════════════════════
-      // HORIZONTAL SCROLL PINNED SECTION (Showcase-style)
-      // ═══════════════════════════════════════════
-      const stockCards = gsap.utils.toArray<HTMLElement>(".hscroll-card");
-      if (stockCards.length > 0) {
-        const scrollSection = document.querySelector(".hscroll-section");
-        const scrollContainer = document.querySelector(".hscroll-container");
-        if (scrollSection && scrollContainer) {
-          gsap.to(scrollContainer, {
-            x: () => -(scrollContainer as HTMLElement).scrollWidth + window.innerWidth - 100,
-            ease: "none",
-            scrollTrigger: {
-              trigger: scrollSection,
-              start: "top top",
-              end: () => `+=${(scrollContainer as HTMLElement).scrollWidth}`,
-              pin: true,
-              scrub: 1,
-              invalidateOnRefresh: true,
-            },
-          });
-
-          // Cards scale up as they enter viewport
-          stockCards.forEach((card) => {
-            gsap.from(card, {
-              scale: 0.8,
-              opacity: 0.3,
-              rotationY: -15,
-              duration: 0.5,
-              scrollTrigger: {
-                trigger: card,
-                containerAnimation: gsap.getById("hscroll") as gsap.core.Tween | undefined,
-                start: "left 80%",
-                end: "left 50%",
-                scrub: true,
-              },
-            });
-          });
-        }
-      }
 
       // ═══════════════════════════════════════════
       // FEATURES: Stagger from random with rotation
@@ -189,34 +107,9 @@ export function HomePage() {
             See any NSE stock the way an analyst sees it at the opening bell.
           </h1>
 
-          <form
-            className="mt-8 flex max-w-xl gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const symbol = heroQuery.trim().toUpperCase();
-              if (symbol) navigate(`/${symbol}`);
-            }}
-          >
-            <label htmlFor="hero-ticker-search" className="sr-only">
-              Search an NSE ticker
-            </label>
-            <input
-              id="hero-ticker-search"
-              type="text"
-              value={heroQuery}
-              onChange={(e) => setHeroQuery(e.target.value)}
-              placeholder="Type a ticker, for example RELIANCE"
-              autoComplete="off"
-              spellCheck={false}
-              className="min-h-[48px] flex-1 rounded-[10px] border border-white/15 bg-white/[0.04] px-4 text-[15px] text-gray-100 placeholder:text-[#9AA4B2]/70 focus:border-[#C8A96A]/60 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="min-h-[48px] shrink-0 rounded-[10px] border border-[#C8A96A]/50 px-5 text-[15px] font-semibold text-[#C8A96A] transition-colors hover:bg-[#C8A96A]/10"
-            >
-              Analyze
-            </button>
-          </form>
+          <div className="mt-8 max-w-xl">
+            <TickerSearchBar size="hero" />
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-[#9AA4B2]">Try</span>
             {["RELIANCE", "HDFCBANK", "JNKINDIA"].map((symbol) => (
@@ -230,47 +123,6 @@ export function HomePage() {
               </button>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => navigate(`/${verdict.ticker}`)}
-            className="mt-8 flex w-full max-w-3xl items-center gap-5 rounded-[14px] border border-white/10 bg-white/[0.02] p-5 text-left transition-colors hover:border-white/20"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-100">
-                {verdict.ticker}
-                <span className="ml-2 font-normal text-[#9AA4B2]">
-                  {verdict.company_name}
-                </span>
-              </p>
-              <p className="mt-2 flex items-baseline gap-3">
-                <span className="text-4xl font-bold tabular-nums text-gray-100">
-                  {verdict.tft_score?.score}
-                </span>
-                <span className="text-sm font-semibold text-[#2FA36B]">
-                  {verdict.tft_score?.trend_outlook}
-                </span>
-                {verdictChange !== null && (
-                  <span className="text-xs tabular-nums text-[#9AA4B2]">
-                    {verdictChange >= 0 ? "+" : ""}
-                    {verdictChange.toFixed(1)}% over the last 30 trading days
-                  </span>
-                )}
-              </p>
-            </div>
-            <span
-              aria-hidden="true"
-              className="-rotate-2 shrink-0 rounded-[6px] border-2 border-[#2FA36B] px-3 py-1 text-sm font-bold tracking-wide text-[#2FA36B]"
-            >
-              {verdict.xgboost?.rating}
-            </span>
-            <span className="hidden sm:block">
-              <Sparkline values={verdict.historical.close_prices} />
-            </span>
-          </button>
-          <p className="mt-3 text-xs text-[#9AA4B2]">
-            Sample verdict from cached data. Open it for the full breakdown.
-          </p>
         </div>
       </section>
 
@@ -323,61 +175,6 @@ export function HomePage() {
                 {stat.label}
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ════════ HORIZONTAL SCROLL STOCKS (Pinned) ════════ */}
-      <section className="hscroll-section relative">
-        <div className="absolute top-8 left-8 z-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-100">Trending Stocks</h2>
-          <p className="text-gray-400 mt-1">Scroll horizontally →</p>
-        </div>
-        <div className="hscroll-container flex items-center gap-8 px-8 pt-24 pb-8 min-h-screen">
-          {trendingStocks.map((stock) => (
-            <button
-              key={stock.ticker}
-              onClick={() => navigate(`/${stock.ticker}`)}
-              className="hscroll-card glass rounded-3xl p-8 min-w-[320px] md:min-w-[380px] text-left hover:shadow-2xl transition-shadow duration-300 group flex-shrink-0"
-              style={{ transformStyle: "preserve-3d" }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-2xl font-black text-gray-100 group-hover:text-indigo-400 transition-colors">
-                  {stock.ticker}
-                </span>
-                <span className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wide ${
-                  stock.ai_rating === "STRONG BUY" ? "bg-emerald-900/50 text-emerald-300"
-                    : stock.ai_rating === "BUY" ? "bg-green-900/50 text-green-300"
-                    : stock.ai_rating === "HOLD" ? "bg-amber-900/50 text-amber-300"
-                    : "bg-red-900/50 text-red-300"
-                }`}>
-                  {stock.ai_rating}
-                </span>
-              </div>
-              <p className="text-sm text-gray-400 mb-6">{stock.company_name}</p>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-white/5 rounded-xl px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-widest text-gray-500">P/E Ratio</div>
-                  <div className="text-xl font-bold text-gray-200 mt-1">{stock.pe_ratio}</div>
-                </div>
-                <div className="bg-white/5 rounded-xl px-4 py-3">
-                  <div className="text-[10px] uppercase tracking-widest text-gray-500">ROE %</div>
-                  <div className="text-xl font-bold text-gray-200 mt-1">{stock.roe}%</div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1.5">
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">TFT Resilience</span>
-                  <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{stock.tft_score}/100</span>
-                </div>
-                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-full"
-                    style={{ width: `${stock.tft_score}%` }}
-                  />
-                </div>
-              </div>
-            </button>
           ))}
         </div>
       </section>

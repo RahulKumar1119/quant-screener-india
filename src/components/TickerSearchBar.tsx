@@ -8,8 +8,10 @@ import type { TickerSummary } from "../types/index";
  * Filters suggestions as case-insensitive substring match on ticker symbol.
  * On selection, navigates to /:ticker route.
  * Premium: focus width expansion, accent ring, glass dropdown, fade transitions.
+ *
+ * `size="hero"` renders the larger ledger-style variant for the landing hero.
  */
-export function TickerSearchBar() {
+export function TickerSearchBar({ size = "default" }: { size?: "default" | "hero" }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [tickers, setTickers] = useState<TickerSummary[]>([]);
@@ -93,10 +95,16 @@ export function TickerSearchBar() {
     }
   };
 
+  const isHero = size === "hero";
+
   return (
     <div
       ref={containerRef}
-      className="relative w-full max-w-md focus-within:max-w-lg transition-all duration-200 ease-out focus-within:ring-2 focus-within:ring-indigo-500/50 rounded-lg"
+      className={
+        isHero
+          ? "relative w-full max-w-xl focus-within:ring-2 focus-within:ring-[#C8A96A]/40 rounded-[10px]"
+          : "relative w-full max-w-md focus-within:max-w-lg transition-all duration-200 ease-out focus-within:ring-2 focus-within:ring-indigo-500/50 rounded-lg"
+      }
     >
       <input
         ref={inputRef}
@@ -109,13 +117,19 @@ export function TickerSearchBar() {
             setIsOpen(true);
           }
         }}
-        placeholder="Search ticker..."
+        placeholder={isHero ? "Type a ticker, for example RELIANCE" : "Search ticker..."}
         aria-label="Search ticker"
         aria-expanded={isOpen}
         aria-autocomplete="list"
         aria-controls="ticker-suggestions"
         role="combobox"
-        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none transition-colors"
+        autoComplete="off"
+        spellCheck={false}
+        className={
+          isHero
+            ? "w-full min-h-[48px] rounded-[10px] border border-white/15 bg-white/[0.04] px-4 text-[15px] text-gray-100 placeholder:text-[#9AA4B2]/70 focus:border-[#C8A96A]/60 focus:outline-none transition-colors"
+            : "w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none transition-colors"
+        }
       />
 
       {isOpen && suggestions.length > 0 && (
