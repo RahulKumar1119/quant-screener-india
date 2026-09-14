@@ -1,17 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { TickerSearchBar } from "./TickerSearchBar";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
 
 /**
- * Sticky navigation header with Logo, TickerSearchBar, ThemeToggle, and auth controls.
- * Responsive: search bar collapses to a search icon on mobile (<768px).
- * Premium: gradient background, gradient bottom border, scroll-aware elevation.
+ * Sticky navigation header with Logo, ThemeToggle, and auth controls.
+ * Search lives in the landing hero only, so the header stays quiet.
  * Shows user email + Logout when authenticated, or Sign In / Sign Up links when not.
  */
 export function NavigationHeader() {
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, isAuthenticated, logout, isLoading } = useAuth();
 
@@ -40,12 +37,7 @@ export function NavigationHeader() {
           </Link>
         </div>
 
-        {/* Desktop search bar — hidden on mobile */}
-        <div className="hidden md:flex flex-1 justify-center px-4">
-          <TickerSearchBar />
-        </div>
-
-        {/* Right side: auth controls + mobile search icon + theme toggle */}
+        {/* Right side: auth controls + theme toggle */}
         <div className="flex items-center gap-3">
           {/* Auth controls */}
           {!isLoading && (
@@ -87,38 +79,9 @@ export function NavigationHeader() {
             </>
           )}
 
-          {/* Mobile search icon — visible only on mobile */}
-          <button
-            onClick={() => setMobileSearchOpen((prev) => !prev)}
-            aria-label="Toggle search"
-            className="md:hidden p-2 rounded-lg hover:bg-white/5 hover:scale-105 transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <svg
-              className="w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </button>
-
           <ThemeToggle />
         </div>
       </div>
-
-      {/* Mobile expanded search bar */}
-      {mobileSearchOpen && (
-        <div className="md:hidden px-4 pb-3">
-          <TickerSearchBar />
-        </div>
-      )}
     </header>
   );
 }
