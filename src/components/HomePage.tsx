@@ -9,13 +9,35 @@ import { useMarketIndices } from "../hooks/useMarketIndices";
 
 gsap.registerPlugin(ScrollTrigger, TextPlugin, useGSAP);
 
-const FEATURES = [
-  { icon: "📈", title: "AI Price Projections", description: "ML-powered price forecasts from real NSE OHLC data" },
-  { icon: "🧠", title: "ML Stock Ratings", description: "XGBoost multi-class classifier: STRONG BUY → SELL" },
-  { icon: "🌐", title: "Macro Resilience", description: "TFT model with RBI REPO + sector indices → score 0-100" },
-  { icon: "✨", title: "AI Summaries", description: "Gemma 3 4B SEBI-style fundamental narrative generation" },
-  { icon: "🔍", title: "Custom Screener", description: "Text queries across NSE: PE < 25 AND ROE > 15" },
-  { icon: "🇮🇳", title: "Indian Native", description: "₹ Crores, NSE symbols, weekend-skipping date axes" },
+const MODELS = [
+  {
+    n: "01",
+    name: "XGBoost rating",
+    question: "Is this stock worth buying?",
+    reads: "Revenue growth, operating and net margins, PE, ROE, 7 and 30-day momentum through a SageMaker endpoint, with a local heuristic fallback",
+    writes: "STRONG BUY, BUY, HOLD or SELL, each with a confidence score",
+  },
+  {
+    n: "02",
+    name: "TFT resilience",
+    question: "Can it withstand the market mood?",
+    reads: "RBI repo rate, sector indices, 90-day momentum, volatility and trend consistency",
+    writes: "A score from 0 to 100 with a Bullish, Neutral or Bearish outlook",
+  },
+  {
+    n: "03",
+    name: "Gemma narrative",
+    question: "What does this mean in plain words?",
+    reads: "Latest quarter revenue and margin, current price and the XGBoost rating through Bedrock",
+    writes: "A three to four sentence SEBI-style summary written for retail investors",
+  },
+  {
+    n: "04",
+    name: "Custom screener",
+    question: "Which stocks pass my rules?",
+    reads: "PE, ROE, ROCE, dividend yield and model scores across about 2,600 NSE listings",
+    writes: "A filtered list from queries such as PE < 25 AND ROE > 15",
+  },
 ];
 
 const STATS = [
@@ -59,27 +81,14 @@ export function HomePage() {
         scrollTrigger: { trigger: ".stats-grid", start: "top 80%" },
       });
 
-      // ═══════════════════════════════════════════
-      // FEATURES: Stagger from random with rotation
-      // ═══════════════════════════════════════════
-      gsap.from(".feature-card", {
-        y: 100,
+      // Single calm reveal for the model ledger rows
+      gsap.from(".model-row", {
+        y: 24,
         opacity: 0,
-        rotationY: gsap.utils.wrap([-30, 30, -20, 20, -10, 10]),
-        duration: 0.9,
-        stagger: { each: 0.12, from: "random" },
-        ease: "power3.out",
-        scrollTrigger: { trigger: ".features-grid", start: "top 75%" },
-      });
-
-      // Feature icons: elastic bounce
-      gsap.from(".feat-icon", {
-        scale: 0,
-        rotation: gsap.utils.wrap([180, -180, 90, -90, 270, -270]),
-        duration: 1,
-        stagger: 0.1,
-        ease: "elastic.out(1.2, 0.4)",
-        scrollTrigger: { trigger: ".features-grid", start: "top 70%" },
+        duration: 0.6,
+        stagger: 0.08,
+        ease: "power2.out",
+        scrollTrigger: { trigger: ".model-row", start: "top 85%" },
       });
 
       // CTA entrance
@@ -179,29 +188,47 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ════════ FEATURES ════════ */}
-      <section className="py-24 bg-gradient-to-b from-black/50 to-black">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-100 mb-4">
-              Four ML Models.{" "}
-              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">
-                One Platform.
-              </span>
-            </h2>
-            <p className="text-lg text-gray-400 max-w-xl mx-auto">
-              Real NSE data meets cutting-edge machine learning
-            </p>
-          </div>
-          <div className="features-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="feature-card glass rounded-3xl p-8 hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 group cursor-default" style={{ transformStyle: "preserve-3d" }}>
-                <div className="feat-icon text-5xl mb-5 inline-block group-hover:scale-125 transition-transform duration-500">{f.icon}</div>
-                <h3 className="text-xl font-bold text-gray-100 mb-3 group-hover:text-indigo-400 transition-colors duration-300">{f.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{f.description}</p>
-              </div>
+      {/* ════════ MODELS: how a ticker becomes a verdict ════════ */}
+      <section className="border-t border-white/5 bg-[#0B0D10]">
+        <div className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+          <h2 className="max-w-xl text-3xl font-bold leading-tight text-gray-100 md:text-4xl">
+            How a ticker becomes a verdict.
+          </h2>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#9AA4B2]">
+            Everything starts from one live record per ticker: the latest quote,
+            30 days of closes and quarterly financials. Four stages read that
+            record in order, each answering one question. Figures use Indian
+            numbering throughout, with trading-day axes that skip weekends.
+          </p>
+          <ol className="mt-10 border-t border-white/10">
+            {MODELS.map((m) => (
+              <li
+                key={m.n}
+                className="model-row grid gap-2 border-b border-white/10 py-6 md:grid-cols-[56px_240px_1fr] md:gap-6"
+              >
+                <span className="text-sm tabular-nums text-[#C8A96A]">{m.n}</span>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-100">{m.name}</h3>
+                  <p className="mt-1 text-sm text-[#9AA4B2]">{m.question}</p>
+                </div>
+                <div className="space-y-2 text-sm leading-relaxed">
+                  <p className="text-gray-300">
+                    <span className="text-[#9AA4B2]">Reads </span>
+                    {m.reads}.
+                  </p>
+                  <p className="text-gray-300">
+                    <span className="text-[#9AA4B2]">Writes </span>
+                    {m.writes}.
+                  </p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
+          <p className="mt-6 text-xs leading-relaxed text-[#9AA4B2]">
+            When a model is unreachable, the page shows the remaining data and
+            says so instead of failing. Ratings carry confidence scores so a
+            verdict can always be weighed, never just taken.
+          </p>
         </div>
       </section>
 
