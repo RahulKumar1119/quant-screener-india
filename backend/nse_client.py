@@ -143,6 +143,21 @@ def dividend_yield_pct(info: dict, last_price: float) -> float:
 
 
 
+_ETF_SYMBOLS: Optional[set] = None
+
+
+def is_etf(symbol: str) -> bool:
+    """True when the symbol is an exchange-traded fund in the bundled master."""
+    global _ETF_SYMBOLS
+    if _ETF_SYMBOLS is None:
+        _ETF_SYMBOLS = {
+            r["symbol"]
+            for r in NSEClient().get_nifty500_constituents()
+            if r.get("instrument") == "ETF"
+        }
+    return symbol.upper() in _ETF_SYMBOLS
+
+
 class NSEClient:
     """Fetches market data using yfinance (Yahoo Finance).
 
@@ -321,6 +336,7 @@ class NSEClient:
                         "series": r.get("series", ""),
                         "market_cap_cr": float(r.get("market_cap_cr") or 0),
                         "bse_code": r.get("bse_code", ""),
+                        "instrument": r.get("instrument", "EQUITY"),
                         "lastPrice": 0,
                         "pChange": 0,
                     }
