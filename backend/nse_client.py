@@ -40,6 +40,7 @@ INDEX_SYMBOLS = {
 }
 
 
+
 _BSE_TO_NSE: Optional[dict] = None
 
 
@@ -59,6 +60,73 @@ def resolve_symbol(identifier: str) -> str:
             if r.get("bse_code")
         }
     return _BSE_TO_NSE.get(identifier, identifier)
+
+
+def fiscal_quarter_label(period_end) -> str:
+    """Label a quarter-end date in the Indian fiscal year (April to March).
+
+    Jun -> Q1, Sep -> Q2, Dec -> Q3, Mar -> Q4. FY is named by the year in
+    which it ends, so Dec 2025 is "Q3 FY26".
+    """
+    month = period_end.month
+    quarter = ((month - 4) % 12) // 3 + 1
+    fy_end_year = period_end.year + 1 if month >= 4 else period_end.year
+    return f"Q{quarter} FY{fy_end_year % 100:02d}"
+
+
+def _first_value(df: pd.DataFrame, names: tuple, column) -> Optional[float]:
+    for name in names:
+        if name in df.index:
+            value = df.at[name, column]
+            if pd.notna(value):
+                return float(value)
+    return None
+
+
+def compute_roce(financials: Optional[pd.DataFrame], balance_sheet: Optional[pd.DataFrame]) -> float:
+    """ROCE % = trailing EBIT / (total assets - current liabilities).
+
+    Uses the last four quarters of EBIT, annualised when fewer are available,
+    and the most recent balance sheet. Returns 0.0 when it cannot be computed.
+    """
+    try:
+        if financials is None or financials.empty or balance_sheet is None or balance_sheet.empty:
+            return 0.0
+        ebits = [
+            v for v in (
+                _first_value(financials, ("EBIT", "Operating Income"), col)
+                for col in financials.columns[:4]
+            ) if v is not None
+        ]
+        if not ebits:
+            return 0.0
+        latest = balance_sheet.columns[0]
+        assets = _first_value(balance_sheet, ("Total Assets",), latest)
+        current_liabilities = _first_value(balance_sheet, ("Current Liabilities",), latest)
+        if assets is None or current_liabilities is None:
+            return 0.0
+        capital_employed = assets - current_liabilities
+        if capital_employed <= 0:
+            return 0.0
+        annual_ebit = sum(ebits) * (4 / len(ebits))
+        return round(annual_ebit / capital_employed * 100, 2)
+    except Exception as exc:
+        logger.warning("ROCE computation failed: %s", exc)
+        return 0.0
+
+
+def dividend_yield_pct(info: dict, last_price: float) -> float:
+    """Dividend yield in percent.
+
+    Derived from the annual dividend per share and price, which does not
+    depend on whether the data source reports yield as a fraction or a percent.
+    """
+    rate = info.get("dividendRate") or 0
+    if rate and last_price:
+        return round(float(rate) / float(last_price) * 100, 2)
+    return 0.0
+
+
 
 
 class NSEClient:
@@ -121,7 +189,7 @@ class NSEClient:
                 },
                 "securityInfo": {
                     "issuedSize": info.get("sharesOutstanding") or 0,
-                    "yield": info.get("dividendYield") or 0,
+                    "yield": dividend_yield_pct(info, last_price),
                 },
                 "industryInfo": {
                     "sector": info.get("sector") or "",
@@ -130,8 +198,8 @@ class NSEClient:
                 "_marketCap": market_cap,
                 "_pe": pe_ratio,
                 "_roe": info.get("returnOnEquity") or 0,
-                "_roce": 0,
-                "_dividendYield": round((info.get("dividendYield") or 0) * 100, 2),
+                "_roce": compute_roce(ticker.quarterly_financials, ticker.quarterly_balance_sheet),
+                "_dividendYield": dividend_yield_pct(info, last_price),
             }
         except Exception as exc:
             logger.error("yfinance quote failed for %s: %s", symbol, exc)
@@ -203,7 +271,7 @@ class NSEClient:
                 margin = (net_profit / revenue * 100) if revenue else 0
 
                 results.append({
-                    "quarter": col.strftime("Q%q FY%y") if hasattr(col, 'strftime') else str(col)[:10],
+                    "quarter": fiscal_quarter_label(col) if hasattr(col, 'month') else str(col)[:10],
                     "revenue": float(revenue),
                     "expenses": float(expenses),
                     "operating_profit": float(operating_profit),

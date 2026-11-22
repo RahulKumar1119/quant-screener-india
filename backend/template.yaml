@@ -9,6 +9,14 @@ Globals:
     Runtime: python3.10
 
 Resources:
+  QuantScreenerApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      # Global throttle for every route. HTTP APIs cannot throttle per IP,
+      # so this caps total spend from SageMaker/Bedrock if the API is abused.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
   QuantScreenerFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -33,18 +41,20 @@ Resources:
         ApiCatchAll:
           Type: HttpApi
           Properties:
+            ApiId: !Ref QuantScreenerApi
             Path: /{proxy+}
             Method: ANY
         ApiRoot:
           Type: HttpApi
           Properties:
+            ApiId: !Ref QuantScreenerApi
             Path: /
             Method: ANY
 
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint URL
-    Value: !Sub 'https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+    Value: !Sub 'https://${QuantScreenerApi}.execute-api.${AWS::Region}.amazonaws.com'
   FunctionArn:
     Description: Lambda function ARN
     Value: !GetAtt QuantScreenerFunction.Arn
