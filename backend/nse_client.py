@@ -43,6 +43,19 @@ INDEX_SYMBOLS = {
 
 _BSE_TO_NSE: Optional[dict] = None
 
+# Old NSE symbols that were renamed; old lookups keep working.
+RENAMED_SYMBOLS = {
+    "ABCOTS": "ABCIND",
+    "GFSTEELS": "TIKONA",
+    "HEG": "HEGAM",
+    "ICICIPRULI": "ICICILIFE",
+    "NOVARTIND": "EVONILE",
+    "SANGINITA": "AGASTYAEN",
+    "SHUKRAPHAR": "SHUKRAMED",
+    "SILLYMONKS": "CRESTO",
+    "VIRAT": "BRAHMVIRAT",
+}
+
 
 def resolve_symbol(identifier: str) -> str:
     """Map a 6-digit BSE scrip code to its NSE symbol; pass other input through.
@@ -51,6 +64,7 @@ def resolve_symbol(identifier: str) -> str:
     """
     global _BSE_TO_NSE
     identifier = identifier.strip().upper()
+    identifier = RENAMED_SYMBOLS.get(identifier, identifier)
     if not (len(identifier) == 6 and identifier.isdigit()):
         return identifier
     if _BSE_TO_NSE is None:

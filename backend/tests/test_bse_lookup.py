@@ -12,3 +12,10 @@ def test_resolve_symbol_maps_bse_code_and_passes_through_symbols():
     assert resolve_symbol("reliance") == "RELIANCE"
     assert resolve_symbol("999999") == "999999"
     assert resolve_symbol(" tcs ") == "TCS"
+
+
+def test_resolve_symbol_maps_renamed_symbols():
+    from nse_client import resolve_symbol
+
+    assert resolve_symbol("HEG") == "HEGAM"
+    assert resolve_symbol("icicipruli") == "ICICILIFE"
