@@ -102,7 +102,7 @@ def handler(event, context) -> dict:
     repo_rate = client.get_rbi_repo_rate()
     sectors = client.get_sector_indices()
 
-    constituents = client.get_nifty500_constituents()
+    constituents = [c for c in client.get_nifty500_constituents() if c.get("instrument") != "ETF"]
 
     def market_cap(item: dict) -> float:
         try:

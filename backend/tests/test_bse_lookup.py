@@ -19,3 +19,11 @@ def test_resolve_symbol_maps_renamed_symbols():
 
     assert resolve_symbol("HEG") == "HEGAM"
     assert resolve_symbol("icicipruli") == "ICICILIFE"
+
+
+def test_etfs_are_flagged_in_master():
+    from nse_client import is_etf
+
+    assert is_etf("NIFTYBEES")
+    assert is_etf("niftybees")
+    assert not is_etf("TCS")

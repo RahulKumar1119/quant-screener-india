@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 from auth import router as auth_router
 from cache import CacheManager
 from ml_models import GemmaModel, TFTModel, XGBoostModel
-from nse_client import NSEClient, resolve_symbol
+from nse_client import NSEClient, is_etf, resolve_symbol
 from rate_limiter import RateLimiter
 from ratings_store import RatingStore
 from schemas import (
@@ -417,7 +417,9 @@ async def get_ticker(ticker: str, request: Request):
         "roe": profile.roe,
         "price_change": float(price_info.get("pChange", 0)),
     }
-    xgboost_result = safe_predict(xgboost_model.predict, raw_financials, xgboost_stock_data)
+    # ETFs have no company financials, so the stock models do not apply.
+    etf = is_etf(ticker)
+    xgboost_result = None if etf else safe_predict(xgboost_model.predict, raw_financials, xgboost_stock_data)
     xgboost_output: Optional[XGBoostOutput] = None
     if xgboost_result:
         xgboost_output = XGBoostOutput(
@@ -427,37 +429,39 @@ async def get_ticker(ticker: str, request: Request):
 
     # TFT: macro resilience score
     tft_output: Optional[TFTOutput] = None
-    try:
-        repo_rate = nse_client.get_rbi_repo_rate()
-        sector_indices = nse_client.get_sector_indices()
-        stock_data = {
-            "symbol": ticker,
-            "pe_ratio": profile.pe_ratio,
-            "roe": profile.roe,
-            "price_change": float(price_info.get("pChange", 0)),
-            "sector": metadata.get("industry", "") or quote.get("industryInfo", {}).get("sector", ""),
-        }
-        tft_result = safe_predict(tft_model.predict, repo_rate, sector_indices, stock_data)
-        if tft_result:
-            tft_output = TFTOutput(
-                score=tft_result["score"],
-                trend_outlook=tft_result["trend_outlook"],
-            )
-    except Exception as e:
-        logger.warning("TFT macro data fetch failed: %s", e)
+    if not etf:
+        try:
+            repo_rate = nse_client.get_rbi_repo_rate()
+            sector_indices = nse_client.get_sector_indices()
+            stock_data = {
+                "symbol": ticker,
+                "pe_ratio": profile.pe_ratio,
+                "roe": profile.roe,
+                "price_change": float(price_info.get("pChange", 0)),
+                "sector": metadata.get("industry", "") or quote.get("industryInfo", {}).get("sector", ""),
+            }
+            tft_result = safe_predict(tft_model.predict, repo_rate, sector_indices, stock_data)
+            if tft_result:
+                tft_output = TFTOutput(
+                    score=tft_result["score"],
+                    trend_outlook=tft_result["trend_outlook"],
+                )
+        except Exception as e:
+            logger.warning("TFT macro data fetch failed: %s", e)
 
     # Gemma: narrative summary
     gemma_summary = ""
-    try:
-        rating_for_gemma = xgboost_result or {"rating": "N/A", "confidence": 0}
-        gemma_summary = gemma_model.generate_summary(
-            ticker=ticker,
-            financials=raw_financials,
-            quote=price_info,
-            rating=rating_for_gemma,
-        ) or ""
-    except Exception as e:
-        logger.warning("Gemma summary generation failed for %s: %s", ticker, e)
+    if not etf:
+        try:
+            rating_for_gemma = xgboost_result or {"rating": "N/A", "confidence": 0}
+            gemma_summary = gemma_model.generate_summary(
+                ticker=ticker,
+                financials=raw_financials,
+                quote=price_info,
+                rating=rating_for_gemma,
+            ) or ""
+        except Exception as e:
+            logger.warning("Gemma summary generation failed for %s: %s", ticker, e)
 
     # --- Build full response ---
     return TickerResponse(
