@@ -378,7 +378,7 @@ async def get_ticker(ticker: str, request: Request):
         market_cap=float(quote.get("_marketCap", 0) or security_info.get("issuedSize", 0) * price_info.get("lastPrice", 0)),
         pe_ratio=float(quote.get("_pe", 0) or metadata.get("pdSymbolPe", 0) or 0),
         roe=float(quote.get("_roe", 0) or 0) * 100 if float(quote.get("_roe", 0) or 0) < 1 else float(quote.get("_roe", 0) or 0),
-        roce=0.0,
+        roce=float(quote.get("_roce", 0) or 0),
         dividend_yield=float(quote.get("_dividendYield", 0) or security_info.get("yield", 0) or 0),
     )
 
