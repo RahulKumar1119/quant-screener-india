@@ -40,6 +40,27 @@ INDEX_SYMBOLS = {
 }
 
 
+_BSE_TO_NSE: Optional[dict] = None
+
+
+def resolve_symbol(identifier: str) -> str:
+    """Map a 6-digit BSE scrip code to its NSE symbol; pass other input through.
+
+    Unknown codes are returned unchanged so the caller's normal not-found path runs.
+    """
+    global _BSE_TO_NSE
+    identifier = identifier.strip().upper()
+    if not (len(identifier) == 6 and identifier.isdigit()):
+        return identifier
+    if _BSE_TO_NSE is None:
+        _BSE_TO_NSE = {
+            r["bse_code"]: r["symbol"]
+            for r in NSEClient().get_nifty500_constituents()
+            if r.get("bse_code")
+        }
+    return _BSE_TO_NSE.get(identifier, identifier)
+
+
 class NSEClient:
     """Fetches market data using yfinance (Yahoo Finance).
 
@@ -217,6 +238,7 @@ class NSEClient:
                         "isin": r.get("isin", ""),
                         "series": r.get("series", ""),
                         "market_cap_cr": float(r.get("market_cap_cr") or 0),
+                        "bse_code": r.get("bse_code", ""),
                         "lastPrice": 0,
                         "pChange": 0,
                     }

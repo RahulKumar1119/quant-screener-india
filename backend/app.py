@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 from auth import router as auth_router
 from cache import CacheManager
 from ml_models import GemmaModel, TFTModel, XGBoostModel
-from nse_client import NSEClient
+from nse_client import NSEClient, resolve_symbol
 from rate_limiter import RateLimiter
 from ratings_store import RatingStore
 from schemas import (
@@ -299,7 +299,7 @@ async def get_ticker(ticker: str, request: Request):
     Pipeline: rate-limit → fetch quote → fetch historical → fetch financials
     → run ML inference → return TickerResponse.
     """
-    ticker = ticker.upper()
+    ticker = resolve_symbol(ticker)
     nse_client: NSEClient = request.app.state.nse_client
     cache: CacheManager = request.app.state.cache
     rate_limiter: RateLimiter = request.app.state.rate_limiter
